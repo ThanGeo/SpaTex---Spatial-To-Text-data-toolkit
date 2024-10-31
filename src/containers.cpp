@@ -7,6 +7,7 @@ Dataset::Dataset(DatasetStatement &stmt){
     this->dataType = stmt.dataType;
     this->fileFormat = stmt.fileFormat;
     this->nickname = stmt.nickname;
+    this->key = stmt.key;
     this->description = stmt.description;
     this->wktColIdx = stmt.wktColIdx;
     this->nameColIdx = stmt.nameColIdx;
@@ -153,15 +154,15 @@ Dataset* DatasetMetadata::getDatasetByIdx(DatasetIndex datasetIndex) {
  */
 DB_STATUS DatasetMetadata::addDataset(DatasetIndex datasetIdx, Dataset &dataset) {
     // add to datasets struct
-    datasets[dataset.nickname] = dataset;
+    datasets[dataset.key] = dataset;
     switch (datasetIdx) {
         case DATASET_R:
             // R is being added
-            R = &datasets[dataset.nickname];
+            R = &datasets[dataset.key];
             break;
         case DATASET_S:
             // S is being added
-            S = &datasets[dataset.nickname];
+            S = &datasets[dataset.key];
             break;
         default:
             logger::log_error(DBERR_INVALID_PARAMETER, "Invalid dataset index. Use only DATASET_R or DATASET_S.");
@@ -277,4 +278,68 @@ namespace shape_factory
         }
         return DBERR_OK;
     }
+}
+
+void DiskWriter::addString(std::string &str, int tid) {
+    buffers[tid] += str + '\n';
+    if (buffers[tid].size() >= this->buffer_limit) {
+        // write and empty buffer (todo: not thread safe to write like this on disk)
+    }
+} 
+
+DB_STATUS DiskWriter::writeBuffers() {
+    for (auto &buf : this->buffers) {
+        if (!(this->output << buf)) {
+            return DBERR_FILE_WRITE;
+        }
+    }
+    return DBERR_OK;
+} 
+
+DB_STATUS DiskWriter::writeFixedRules() {
+    std::vector<std::string> rules {"Adjacent entities have no common area.", 
+                                    "Disjoint entities have no common area.", 
+                                    "Entities that are not described by any relation, are considered disjoint with each other.",};
+
+    // write header
+    if(!(this->output << "text" << std::endl)){
+        return DBERR_FILE_WRITE;
+    }
+    // write rules
+    for (auto &buf : rules) {
+        if (!(this->output << buf << std::endl)) {
+            return DBERR_FILE_WRITE;
+        }
+    }
+    return DBERR_OK;
+} 
+
+void DiskWriter::printBufferSizes() {
+    int bufferCount = 0;
+    printf("Buffer sizes in bytes:\n");
+    for (auto &it: this->buffers) {
+        printf("    Buffer %d: %lu\n", bufferCount, it.size());
+        bufferCount += 1;
+    }  
+} 
+
+DB_STATUS DiskWriter::openOutputFilestream(std::string &filepath, bool append) {    
+    if (append) {
+        // open file for appending
+        this->output.open(filepath, std::ofstream::out | std::ios_base::app);
+    } else {
+        // not append
+        this->output.open(filepath, std::ofstream::out);
+    }
+    // check if ok
+    if (!output.is_open()) {
+        logger::log_error(DBERR_FILE_OPEN, "Error opening output file:", filepath);
+        return DBERR_FILE_OPEN;
+    }
+    return DBERR_OK;
+}
+
+void DiskWriter::closeOutputFilestream() {
+    this->output.flush();
+    this->output.close();
 }

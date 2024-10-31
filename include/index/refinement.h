@@ -65,7 +65,7 @@ namespace refinement
 
     DB_STATUS computeRelationTexts(Shape* objR, Shape* objS, MBRRelationCase mbrRelationCase, std::string &relationText);
 
-
+    DB_STATUS computeCardinalDirectionBetweenShapes(Shape* objR, Shape* objS, CardinalDirection &direction);
 
 }
 

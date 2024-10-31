@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <algorithm>
 #include <math.h>
+#include <omp.h>
 
 #define RED "\e[0;31m"
 #define GREEN "\e[0;32m"
@@ -58,7 +59,7 @@ typedef enum DB_STATUS {
     DBERR_FILE_OPEN = DBBASE + 1008,
     DBERR_INI_ERROR = DBBASE + 1009,
     DBERR_INVALID_PARTITION = DBBASE + 1010,
-
+    DBERR_FILE_WRITE = DBBASE + 1011,
 } DB_STATUS;
 
 /** @enum FileFormat @brief Data file types. */

@@ -79,78 +79,35 @@ namespace uniform_grid
         }
         return ret;
     }
-
-    /** @brief Computes the direction (N, S, E, W etc.) between two objects r and s based on their MBRs
-     * @warning The objects MUST BE DISJOINT, otherwise modification are needed
-     */
-    static inline DB_STATUS computeDirection(Shape* r, Shape *s, std::string &relationText) {
-        if (r->mbr.pMin.x > s->mbr.pMax.x) {
-            // EAST
-            if (r->mbr.pMin.y > s->mbr.pMax.y) {
-                // NORTHEAST
-                relationText = text_generator::generateDirectionalRelation(r->name, s->name, CD_NORTHEAST);
-            } else if (r->mbr.pMax.y < s->mbr.pMin.y) {
-                // SOUTHEAST
-                relationText = text_generator::generateDirectionalRelation(r->name, s->name, CD_SOUTHEAST);
-            } else {
-                // not really north or south, just EAST
-                relationText = text_generator::generateDirectionalRelation(r->name, s->name, CD_EAST);
-            }
-        } else if (r->mbr.pMax.x < s->mbr.pMin.x) {
-            // WEST
-            if (r->mbr.pMin.y > s->mbr.pMax.y) {
-                // NORTHWEST
-                relationText = text_generator::generateDirectionalRelation(r->name, s->name, CD_NORTHWEST);
-            } else if (r->mbr.pMax.y < s->mbr.pMin.y) {
-                // SOUTHWEST
-                relationText = text_generator::generateDirectionalRelation(r->name, s->name, CD_SOUTHWEST);
-            } else {
-                // not really north or south, just WEST
-                relationText = text_generator::generateDirectionalRelation(r->name, s->name, CD_WEST);
-            }
-        } else {
-            // not really west or east
-            if (r->mbr.pMin.y > s->mbr.pMax.y) {
-                // NORTH
-                relationText = text_generator::generateDirectionalRelation(r->name, s->name, CD_NORTH);
-            } else if (r->mbr.pMax.y < s->mbr.pMin.y) {
-                // SOUTH
-                relationText = text_generator::generateDirectionalRelation(r->name, s->name, CD_SOUTH);
-            } else {
-                // not really W, N, S or E. Generate no relation text
-                relationText = "";
-            }
-        }
-        return DBERR_OK;
-    }
-
-    
-    static inline DB_STATUS relate(Shape* r, Shape* s) {
+   
+    static inline DB_STATUS relate(Shape* r, Shape* s, std::string &relationText) {
         DB_STATUS ret = DBERR_OK;
-        std::string relationText = "";
         if ((r->mbr.pMin.x > s->mbr.pMax.x) || (r->mbr.pMax.x < s->mbr.pMin.x)) {
-            // disjoint
-            ret = computeDirection(r, s, relationText);
+            // disjoint, only compute cardinal direction
+            CardinalDirection direction = CD_NONE;
+            ret = refinement::computeCardinalDirectionBetweenShapes(r, s, direction);
             if (ret != DBERR_OK) {
+                logger::log_error(ret, "Error while computing the cardinal direction between objects with ids", r->recID, "and", s->recID);
                 return ret;
+            }
+            if (direction != CD_NONE) {
+                // append cardinal direction to the relation text
+                relationText = r->name + " is " + mapping::cardinalDirectionIntToString(direction) + " of " + s->name + ". ";
             }
             // logger::log_success("Generated relation for ids", r->recID, s->recID, ":", relationText);
         } else {
-            // intersecting
+            // intersecting MBRs, relate more specifically
             ret = relateMBRs(r, s, relationText);
             if (ret != DBERR_OK) {
                 return ret;
             }
         }
-
-        // save the generated relation text on disk (todo)
-        printf("%s\n", relationText.c_str());
-
         return ret;
     }
     
-    static inline DB_STATUS joinObjects(int partitionID, std::vector<Shape*>* objectsR, std::vector<Shape*>* objectsS) {
+    static inline DB_STATUS joinObjects(int tid, int partitionID, std::vector<Shape*>* objectsR, std::vector<Shape*>* objectsS) {
         DB_STATUS ret = DBERR_OK;
+        std::string relationText = "";
         if (objectsR == nullptr || objectsS == nullptr) {
             return ret;
         }
@@ -172,10 +129,12 @@ namespace uniform_grid
                 int cmbrPartitionID = getPartitionID(partitionX, partitionY, g_config.indexConfig.partitionsPerDim);
                 if (cmbrPartitionID == partitionID) {
                     // relate objects
-                    ret = relate(*r, *s);
+                    ret = relate(*r, *s, relationText);
                     if (ret != DBERR_OK) {
                         return ret;
                     }
+                    // save the generated relation text in a buffer
+                    g_config.diskWriter.addString(relationText, tid);
                 }
                 s++;
             }
@@ -186,10 +145,12 @@ namespace uniform_grid
     
     DB_STATUS evaluate(Dataset* R, Dataset* S) {
         DB_STATUS ret = DBERR_OK;
+        int tid = -1;
         // here the final results will be stored
         logger::log_task("Evaluating...");
-        #pragma omp parallel num_threads(1)
+        #pragma omp parallel num_threads(g_config.getNumThreads()) private(tid)
         {
+            tid = omp_get_thread_num();
             DB_STATUS local_ret = DBERR_OK;
             // loop common partitions (todo: optimize to start from the dataset that has the fewer ones)
             #pragma omp for
@@ -201,16 +162,29 @@ namespace uniform_grid
                 if (tlContainerS != nullptr) {
                     // common partition found
                     Partition* tlContainerR = &R->uniformGridIndex.partitions[i];
-                    local_ret = joinObjects(partitionID, tlContainerR->getContents(), tlContainerS->getContents());
+                    local_ret = joinObjects(tid, partitionID, tlContainerR->getContents(), tlContainerS->getContents());
                     if (local_ret != DBERR_OK) {
                         #pragma omp cancel for
                         ret = local_ret;
                         logger::log_error(ret, "Join failed for partition", partitionID);
-                        break;
                     }
                 }
             }
         }
+        // write header and rules (dont use this in multi-dataset runs as it will be written multiple times)
+        // ret = g_config.diskWriter.writeFixedRules();
+        // if (ret != DBERR_OK) {
+        //     logger::log_error(ret, "Error writing header and rules to output.");
+        //     return ret;
+        // }
+        // write buffers to disk
+        ret = g_config.diskWriter.writeBuffers();
+        if (ret != DBERR_OK) {
+            logger::log_error(ret, "Error writing buffers to output.");
+            return ret;
+        }
+        g_config.diskWriter.closeOutputFilestream();
+
         return ret;
     }
     

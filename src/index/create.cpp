@@ -47,8 +47,6 @@ namespace uniform_grid
             return DBERR_FILE_OPEN;
         }
         std::string line;
-        double x,y;
-        double xMin, yMin, xMax, yMax;
         double global_xMin = std::numeric_limits<int>::max();
         double global_yMin = std::numeric_limits<int>::max();
         double global_xMax = -std::numeric_limits<int>::max();
@@ -125,11 +123,8 @@ namespace uniform_grid
         std::string line;
         // count how many batches have been sent in total
         int partitionID;
-        double x,y;
-        double xMin, yMin, xMax, yMax;
         size_t lineCounter = 0;
         size_t totalValidObjects = 0;
-
         // create empty object based on data type
         Shape object;
         ret = shape_factory::createEmpty(dataset->dataType, object);
@@ -160,7 +155,6 @@ namespace uniform_grid
                 }
                 // add as object name the dataset type + object name
                 object.name = dataset->description + " " + token;
-
                 // set rec ID
                 object.recID = lineCounter;
                 // set object from the WKT
@@ -176,7 +170,6 @@ namespace uniform_grid
                     totalValidObjects += 1;
                     // set the MBR
                     object.setMBR();
-
                     // calculate partitions
                     std::vector<int> partitionIDs;
                     ret = getPartitionsForMBR(object.mbr, partitionIDs);
@@ -184,10 +177,8 @@ namespace uniform_grid
                         return ret;
                     }
                     object.setPartitions(partitionIDs, partitionIDs.size());
-
                     // add to index
                     dataset->addObject(object);
-                    
                 }
                 lineCounter += 1;
             }

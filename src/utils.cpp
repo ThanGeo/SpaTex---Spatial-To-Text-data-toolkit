@@ -104,7 +104,7 @@ namespace mapping
             case TR_DISJOINT: return "is disjoint with";
             case TR_EQUAL: return "is equal with";
             case TR_COVERS: return "covers";
-            case TR_MEET: return "is adjacent with";
+            case TR_MEET: return "is adjacent to";
             case TR_COVERED_BY: return "is covered by";
             case TR_INSIDE: return "is inside of";
             default: return "";
@@ -131,15 +131,38 @@ namespace text_generator
             // don't generate a relation, empty direction
             return "";
         } else {
-            return entityNameR + " " + relationText + " " + entityNameS;
+            return entityNameR + " " + relationText + " " + entityNameS + ". ";
         }
     }
 
     std::string generateAreaInSqkm(std::string &entityNameR, std::string &entityNameS, double area) {
         if (area < EPS) {
-            return entityNameR + " and " + entityNameS + " have no common area.";
+            return "";
         } else {
             return entityNameR + " and " + entityNameS + " have approximately " + std::to_string(area) + " square kilometers of common area.";
         }
     }
+}
+
+
+
+CardinalDirection getCardinalDirection(double angle) {
+    if (angle >= 337.5 || angle < 22.5) {
+        return CD_EAST;
+    } else if (angle >= 22.5 && angle < 67.5) {
+        return CD_NORTHEAST;
+    } else if (angle >= 67.5 && angle < 112.5) {
+        return CD_NORTH;
+    } else if (angle >= 112.5 && angle < 157.5) {
+        return CD_NORTHWEST;
+    } else if (angle >= 157.5 && angle < 202.5) {
+        return CD_WEST;
+    } else if (angle >= 202.5 && angle < 247.5) {
+        return CD_SOUTHWEST;
+    } else if (angle >= 247.5 && angle < 292.5) {
+        return CD_SOUTH;
+    } else if (angle >= 292.5 && angle < 337.5) {
+        return CD_SOUTHEAST;
+    }
+    return CD_NONE;
 }

@@ -10,9 +10,19 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
-set(CMAKE_CXX_FLAGS "-Wall -Wextra")
+# openMP
+find_package(OpenMP)
+
+if(OpenMP_CXX_FOUND)
+    message("OpenMP available and enabled.")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")  # Add OpenMP flags
+else()
+    message("OpenMP not available.")
+endif()
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 
 if(MSVC)
     add_compile_options(/std::c++latest)
@@ -53,5 +63,8 @@ if(Boost_FOUND)
 endif()
 
 # link all
-target_link_libraries(main ${PROJECT_NAME})
-target_link_libraries(main ${Boost_LIBRARIES})
+target_link_libraries(main PUBLIC ${PROJECT_NAME})
+target_link_libraries(main PUBLIC ${Boost_LIBRARIES})
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(main PUBLIC OpenMP::OpenMP_CXX)
+endif()

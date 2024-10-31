@@ -27,7 +27,6 @@ int main(int argc, char *argv[]) {
     
     g_config.datasetMetadata.getDatasetR()->printPartitionStatistics();
     g_config.datasetMetadata.getDatasetS()->printPartitionStatistics();
-
     // g_config.datasetMetadata.getDatasetR()->printPartitionContents(383318);
     // g_config.datasetMetadata.getDatasetS()->printPartitionContents(383318);
 
@@ -41,6 +40,9 @@ int main(int argc, char *argv[]) {
         return ret;
     }
     logger::log_success("Evaluation finished in", (clock()-timer) / (double)(CLOCKS_PER_SEC), "seconds");
+
+    // print write buffers
+    // g_config.diskWriter.printBufferSizes();
 
     return 0;
 }

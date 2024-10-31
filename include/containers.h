@@ -3,6 +3,7 @@
 
 #include <variant>
 #include <any>
+#include <fstream>
 
 #include "def.h"
 #include "utils.h"
@@ -14,15 +15,23 @@ struct DatasetStatement
     FileFormat fileFormat = FT_INVALID;
     DataType dataType = DT_INVALID;
     std::string nickname = "";
+    std::string key = "";
     std::string description = "";
     int wktColIdx = -1;
     int nameColIdx = -1;
+};
+
+struct OutputStatement
+{
+    bool append = false;
+    std::string outputFilepath;
 };
 
 struct ArgumentsStatement
 {
     DatasetStatement datasetR;
     DatasetStatement datasetS;
+    OutputStatement outputStmt;
 };
 
 /**
@@ -885,6 +894,9 @@ private:
     ShapeVariant shape;
     std::vector<int> partitions;
     int partitionCount;
+    double perc = 0.85;
+    double xExtentPerc = 0;
+    double yExtentPerc = 0;
 public:
     /** @brief the object's ID, as read by the data file. */
     size_t recID;
@@ -921,12 +933,12 @@ public:
      * @param partitionIndex indicates the offset (index) of the requested partition from [0, partitionCount-1].
      */
     inline int getPartitionID(int partitionIndex) {
-        return partitions[partitionIndex * 2];
+        return partitions[partitionIndex];
     }
 
     /** @brief Sets the object's partitions (partitionCount in total) to the given list of partitions.
      * @param newPartitions Contains consecutive double values that represent pairs <partitionID, classType>. 
-     * Has size partitionCount * 2.
+     * Has size partitionCount.
      * @param partitionCount The total number of partitions represented by the list.
      */
     inline void setPartitions(std::vector<int> &newPartitions, int partitionCount) {
@@ -937,7 +949,7 @@ public:
     /** @brief Initializes the list of partitions based on the input partition ids. */
     inline void initPartitions(std::vector<int> &partitionIDs) {
         partitionCount = partitionIDs.size();
-        partitions.reserve(partitionCount * 2);
+        partitions.reserve(partitionCount);
         for (auto &it: partitionIDs) {
             partitions.push_back(it);
         }
@@ -957,6 +969,8 @@ public:
         mbr.pMin.y = std::min(yMin, yMax);
         mbr.pMax.x = std::max(xMin, xMax);
         mbr.pMax.y = std::max(yMin, yMax);
+        this->xExtentPerc = (mbr.pMax.x - mbr.pMin.x) * this->perc;
+        this->yExtentPerc = (mbr.pMax.y - mbr.pMin.y) * this->perc;
     }
 
     /** @brief Sets the MBR from the object's boost geometry envelope. */
@@ -971,6 +985,8 @@ public:
         mbr.pMin.y = envelope.min_corner().y();
         mbr.pMax.x = envelope.max_corner().x();
         mbr.pMax.y = envelope.max_corner().y();
+        this->xExtentPerc = (mbr.pMax.x - mbr.pMin.x) * this->perc;
+        this->yExtentPerc = (mbr.pMax.y - mbr.pMin.y) * this->perc;
     }
 
     /** @brief Resets the MBR points */
@@ -979,6 +995,16 @@ public:
         mbr.pMin.y = std::numeric_limits<int>::max();
         mbr.pMax.x = -std::numeric_limits<int>::max();
         mbr.pMax.y = -std::numeric_limits<int>::max();
+        this->xExtentPerc = 0;
+        this->yExtentPerc = 0;
+    }
+
+    inline double getXExtentPerc() {
+        return this->xExtentPerc;
+    }
+
+    inline double getYExtentPerc() {
+        return this->yExtentPerc;
     }
 
     /** @brief Resets the shape object to empty */
@@ -1247,7 +1273,7 @@ struct DataspaceMetadata {
  */
 struct Partition {
     int partitionID;
-    /** @brief Contains the list of objects (Shape) of each class for this partition */
+    /** @brief Contains the list of object pointers (Shape*) for this partition */
     std::vector<Shape*> contents;
     /**
     @brief Default constructor that defines the 4-position vector. Two-layer index classes: A, B, C, D
@@ -1300,6 +1326,7 @@ struct Dataset{
     std::string datasetName;
     // as given by arguments and specified by datasets.ini config file
     std::string nickname;
+    std::string key;
     std::string description;
     int wktColIdx = -1;
     int nameColIdx = -1;
@@ -1371,12 +1398,46 @@ struct IndexConfig {
     int partitionsPerDim = 10000;
 };
 
+/** @brief Parallel buffered disk writer for the relations texts */
+struct DiskWriter {
+private:
+    std::vector<std::string> buffers;
+    size_t buffer_limit = 8192;    // in bytes (be careful of string::max_size)
+    std::ofstream output;
+public:
+    DiskWriter(int numThreads) {
+        buffers.resize(numThreads);
+    }
+    void addString(std::string &str, int tid);
+    DB_STATUS writeBuffers();
+    DB_STATUS writeFixedRules();
+    void printBufferSizes();
+
+    DB_STATUS openOutputFilestream(std::string &filepath, bool append);
+
+    void closeOutputFilestream();
+};
+
 /** @brief The main configuration struct. Holds all necessary configuration options.
  */
 struct Config {
+private:
+    // int NUM_THREADS = omp_get_max_threads();
+    int NUM_THREADS = 1;    // default: single threaded
+public:
     DatasetMetadata datasetMetadata;
     DirectoryPaths dirPaths;
     IndexConfig indexConfig;
+    DiskWriter diskWriter = DiskWriter(NUM_THREADS);
+
+    void setNumThreads(int numThreads) {
+        NUM_THREADS = numThreads;
+        diskWriter = DiskWriter(NUM_THREADS);
+    }
+
+    int getNumThreads() {
+        return NUM_THREADS;
+    }
 };
 
 extern Config g_config;

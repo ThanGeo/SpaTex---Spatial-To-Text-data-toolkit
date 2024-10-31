@@ -117,51 +117,25 @@ namespace refinement
         return TR_INTERSECT;
     }
 
-    static DB_STATUS computeCardinalDirectionBetweenShapes(Shape* objR, Shape* objS, CardinalDirection &direction) {
+    DB_STATUS computeCardinalDirectionBetweenShapes(Shape* objR, Shape* objS, CardinalDirection &direction) {
         DB_STATUS ret = DBERR_OK;
 
         // compute centroids
         bg_point_xy centroidR = objR->getCentroid();
         bg_point_xy centroidS = objS->getCentroid();
 
-        // get direction
-        if (abs(centroidR.x() - centroidS.x()) <= EPS) {
-            // not EAST or WEST
-            if (abs(centroidR.y() - centroidS.y()) <= EPS) {
-                // not NORTH or SOUTH
-                direction = CD_NONE;
-            } else if (centroidR.y() > centroidS.y()) {
-                // NORTH
-                direction = CD_NORTH;
-            } else {
-                // SOUTH
-                direction = CD_SOUTH;
-            }
-        } else if (centroidR.x() > centroidS.x()) {
-            // EAST
-            if (abs(centroidR.y() - centroidS.y()) <= EPS) {
-                // not NORTH or SOUTH
-                direction = CD_EAST;
-            } else if (centroidR.y() > centroidS.y()) {
-                // NORTH
-                direction = CD_NORTHEAST;
-            } else {
-                // SOUTH
-                direction = CD_SOUTHEAST;
-            }
-        } else {
-            // WEST
-            if (abs(centroidR.y() - centroidS.y()) <= EPS) {
-                // not NORTH or SOUTH
-                direction = CD_WEST;
-            } else if (centroidR.y() > centroidS.y()) {
-                // NORTH
-                direction = CD_NORTHWEST;
-            } else {
-                // SOUTH
-                direction = CD_SOUTHWEST;
-            }
+        bg_linestring centroidVector;
+        centroidVector.push_back(centroidR);
+        centroidVector.push_back(centroidS);
+        double dx = centroidR.x() - centroidS.x();
+        double dy = centroidR.y() - centroidS.y();
+        double angle = std::atan2(dy, dx) * 180.0 / M_PI;
+        // Normalize the angle to be between 0 and 360
+        if (angle < 0) {
+            angle += 360.0;
         }
+        // get direction based on angle degrees
+        direction = getCardinalDirection(angle);
 
         return ret;
     }
@@ -225,7 +199,7 @@ namespace refinement
         // use refinement result to generate the topological relation
         relationText = text_generator::generateTopologicalRelation(objR->name, objS->name, relation);
         // special case, in adjacency also compute the cardinal direction if possible
-        if (relationText != "" && relation == TR_MEET) {
+        if (relationText != "" && (relation == TR_MEET || relation == TR_DISJOINT)) {
             CardinalDirection direction = CD_NONE;
             ret = computeCardinalDirectionBetweenShapes(objR, objS, direction);
             if (ret != DBERR_OK) {
@@ -234,10 +208,9 @@ namespace refinement
             }
             if (direction != CD_NONE) {
                 // append cardinal direction to the relation text
-                relationText += " to the " + mapping::cardinalDirectionIntToString(direction);
+                relationText += objR->name + " is " + mapping::cardinalDirectionIntToString(direction) + " of " + objS->name + ". ";
             }
         }
-        relationText += ". ";
         // compute intersection
         std::string intersectionText = "";
         ret = computeIntersection(objR, objS, relation, intersectionText);

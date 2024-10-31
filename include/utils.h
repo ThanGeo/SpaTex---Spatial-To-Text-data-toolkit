@@ -101,4 +101,7 @@ namespace text_generator
     std::string generateAreaInSqkm(std::string &entityNameR, std::string &entityNameS, double area);
 }
 
+/** @brief Returns the cardinal direction based on a linestring's angle (in degrees) */
+CardinalDirection getCardinalDirection(double angle);
+
 #endif
