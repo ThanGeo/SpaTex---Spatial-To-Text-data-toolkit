@@ -73,6 +73,10 @@ namespace mapping
     std::string cardinalDirectionIntToString(CardinalDirection val);
 
     std::string relationIntToStr(TopologyRelation relation);
+
+    std::string documentTypeIntToStr(DocumentType docType);
+
+    DocumentType documentTypeTextToInt(std::string str);
 }
 
 /**
@@ -103,5 +107,11 @@ namespace text_generator
 
 /** @brief Returns the cardinal direction based on a linestring's angle (in degrees) */
 CardinalDirection getCardinalDirection(double angle);
+
+/** @brief Returns the opposite cardinal direction of the given cardinal direction. */
+CardinalDirection getOppositeCardinalDirection(CardinalDirection direction);
+
+/** @brief Returns the textual swap of the given topology relation. */
+TopologyRelation getSwappedTopologyRelation(TopologyRelation relation);
 
 #endif

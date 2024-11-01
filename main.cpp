@@ -34,10 +34,24 @@ int main(int argc, char *argv[]) {
 
     // evaluate
     timer = clock();
-    ret = uniform_grid::evaluate(g_config.datasetMetadata.getDatasetR(), g_config.datasetMetadata.getDatasetS());
-    if (ret != DBERR_OK) {
-        logger::log_error(ret, "Evaluation failed.");
-        return ret;
+    switch (g_config.diskWriter.getDocumentType()) {
+        case DOC_SENTENCES:
+            ret = uniform_grid::sentences::evaluate(g_config.datasetMetadata.getDatasetR(), g_config.datasetMetadata.getDatasetS());
+            if (ret != DBERR_OK) {
+                logger::log_error(ret, "Evaluation failed.");
+                return ret;
+            }
+            break;
+        case DOC_PARAGRAPHS:
+            ret = uniform_grid::paragraphs::evaluate(g_config.datasetMetadata.getDatasetR(), g_config.datasetMetadata.getDatasetS());
+            if (ret != DBERR_OK) {
+                logger::log_error(ret, "Evaluation failed.");
+                return ret;
+            }
+            break;
+        default:
+            logger::log_error(DBERR_INVALID_DOC_TYPE, "Invalid output document type, code:", g_config.diskWriter.getDocumentType());
+            break;
     }
     logger::log_success("Evaluation finished in", (clock()-timer) / (double)(CLOCKS_PER_SEC), "seconds");
 

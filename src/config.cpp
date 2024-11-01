@@ -23,6 +23,9 @@ namespace config
             logger::log_error(ret, "Failed while opening output filestream.");
             return ret;
         }
+        // set document output file
+        g_config.diskWriter.setDocumentType(mapping::documentTypeTextToInt(argStmt.outputStmt.documentType));
+        
         return ret;
     }
 }

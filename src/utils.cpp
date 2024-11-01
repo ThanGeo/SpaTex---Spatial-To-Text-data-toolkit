@@ -114,6 +114,20 @@ namespace mapping
         }
     }
 
+    std::string documentTypeIntToStr(DocumentType docType) {
+        switch(docType) {
+            case DOC_PARAGRAPHS: return "PARAGRAPHS";
+            case DOC_SENTENCES: return "SENTENCES";
+            default: return "";
+        }
+    }
+
+    DocumentType documentTypeTextToInt(std::string str) {
+        if (str.compare("PARAGRAPHS") == 0) return DOC_PARAGRAPHS;
+        else if (str.compare("SENTENCES") == 0) return DOC_SENTENCES;
+
+        return DOC_INVALID;
+    }
 }
 
 namespace text_generator
@@ -142,7 +156,7 @@ namespace text_generator
         if (area < EPS) {
             return "";
         } else {
-            return entityNameR + " and " + entityNameS + " have approximately " + std::to_string(area) + " square kilometers of common area.";
+            return entityNameR + " and " + entityNameS + " have approximately " + std::to_string(area) + " square kilometers of common area. ";
         }
     }
 }
@@ -168,4 +182,45 @@ CardinalDirection getCardinalDirection(double angle) {
         return CD_SOUTHEAST;
     }
     return CD_NONE;
+}
+
+CardinalDirection getOppositeCardinalDirection(CardinalDirection direction) {
+    switch (direction) {
+        case CD_EAST:
+            return CD_WEST;
+        case CD_WEST:
+            return CD_EAST;
+        case CD_NORTH:
+            return CD_SOUTH;
+        case CD_SOUTH:
+            return CD_NORTH;
+        case CD_NORTHEAST:
+            return CD_SOUTHWEST;
+        case CD_NORTHWEST:
+            return CD_SOUTHEAST;
+        case CD_SOUTHEAST:
+            return CD_NORTHWEST;
+        case CD_SOUTHWEST:
+            return CD_NORTHEAST;    
+    }
+    return CD_NONE;
+}
+
+TopologyRelation getSwappedTopologyRelation(TopologyRelation relation) {
+    switch (relation) {
+        case TR_INSIDE:
+            return TR_CONTAINS;
+        case TR_CONTAINS:
+            return TR_INSIDE;
+        case TR_COVERS:
+            return TR_COVERED_BY;
+        case TR_COVERED_BY:
+            return TR_COVERS;
+        case TR_MEET:
+        case TR_EQUAL:
+        case TR_INTERSECT:
+        case TR_DISJOINT:
+            return relation;
+    }
+    return TR_INVALID;
 }

@@ -24,6 +24,7 @@ struct OutputStatement
 {
     bool append = false;
     std::string outputFilepath;
+    std::string documentType;
 };
 
 struct ArgumentsStatement
@@ -1674,6 +1675,9 @@ private:
     std::vector<std::string> buffers;
     size_t buffer_limit = 8192;    // in bytes (be careful of string::max_size)
     std::ofstream output;
+    DocumentType docType = DOC_SENTENCES;
+    // for paragraph document type
+    std::unordered_map<std::string, std::string> entityRelationMap;
 public:
     DiskWriter(int numThreads) {
         buffers.resize(numThreads);
@@ -1686,6 +1690,12 @@ public:
     DB_STATUS openOutputFilestream(std::string &filepath, bool append);
 
     void closeOutputFilestream();
+
+    void setDocumentType(DocumentType docType);
+    DocumentType getDocumentType();
+
+    void appendTextForEntity(std::string entityKey, std::string text);
+    
 };
 
 /** @brief The main configuration struct. Holds all necessary configuration options.

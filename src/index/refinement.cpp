@@ -171,56 +171,120 @@ namespace refinement
         return ret;
     }
 
-    DB_STATUS computeRelationTexts(Shape* objR, Shape* objS, MBRRelationCase mbrRelationCase, std::string &relationText) {
-        DB_STATUS ret = DBERR_OK;
-        TopologyRelation relation = TR_INVALID;
-        // switch based on MBR intersection case
-        switch(mbrRelationCase) {
-            case MBR_R_IN_S:
-                relation = refineDisjointInsideCoveredbyMeetIntersect(objR, objS);
-                break;
-            case MBR_S_IN_R:
-                relation = refineDisjointContainsCoversMeetIntersect(objR, objS);
-                break;
-            case MBR_EQUAL:
-                relation = refineEqualCoversCoveredbyTrueHitIntersect(objR, objS);
-                break;
-            case MBR_INTERSECT:
-                relation = refineDisjointMeetIntersect(objR, objS);
-                break;
-            case MBR_CROSS:
-                relation = TR_INTERSECT;
-                break;
-            default:
-                logger::log_error(DBERR_INVALID_PARAMETER, "Invalid mbr relation case:", mbrRelationCase);
-                return DBERR_INVALID_PARAMETER;
-        }
+    namespace sentences
+    {
+        DB_STATUS computeRelationTexts(Shape* objR, Shape* objS, MBRRelationCase mbrRelationCase, std::string &relationText) {
+            DB_STATUS ret = DBERR_OK;
+            TopologyRelation relation = TR_INVALID;
+            // switch based on MBR intersection case
+            switch(mbrRelationCase) {
+                case MBR_R_IN_S:
+                    relation = refineDisjointInsideCoveredbyMeetIntersect(objR, objS);
+                    break;
+                case MBR_S_IN_R:
+                    relation = refineDisjointContainsCoversMeetIntersect(objR, objS);
+                    break;
+                case MBR_EQUAL:
+                    relation = refineEqualCoversCoveredbyTrueHitIntersect(objR, objS);
+                    break;
+                case MBR_INTERSECT:
+                    relation = refineDisjointMeetIntersect(objR, objS);
+                    break;
+                case MBR_CROSS:
+                    relation = TR_INTERSECT;
+                    break;
+                default:
+                    logger::log_error(DBERR_INVALID_PARAMETER, "Invalid mbr relation case:", mbrRelationCase);
+                    return DBERR_INVALID_PARAMETER;
+            }
 
-        // use refinement result to generate the topological relation
-        relationText = text_generator::generateTopologicalRelation(objR->name, objS->name, relation);
-        // special case, in adjacency also compute the cardinal direction if possible
-        if (relationText != "" && (relation == TR_MEET || relation == TR_DISJOINT)) {
-            CardinalDirection direction = CD_NONE;
-            ret = computeCardinalDirectionBetweenShapes(objR, objS, direction);
+            // use refinement result to generate the topological relation
+            relationText = text_generator::generateTopologicalRelation(objR->name, objS->name, relation);
+            // special case, in adjacency also compute the cardinal direction if possible
+            if (relationText != "" && (relation == TR_MEET || relation == TR_DISJOINT)) {
+                CardinalDirection direction = CD_NONE;
+                ret = computeCardinalDirectionBetweenShapes(objR, objS, direction);
+                if (ret != DBERR_OK) {
+                    logger::log_error(ret, "Error while computing the cardinal direction between objects with ids", objR->recID, "and", objS->recID);
+                    return ret;
+                }
+                if (direction != CD_NONE) {
+                    // append cardinal direction to the relation text
+                    relationText += objR->name + " is " + mapping::cardinalDirectionIntToString(direction) + " of " + objS->name + ". ";
+                }
+            }
+            // compute intersection
+            std::string intersectionText = "";
+            ret = computeIntersection(objR, objS, relation, intersectionText);
             if (ret != DBERR_OK) {
-                logger::log_error(ret, "Error while computing the cardinal direction between objects with ids", objR->recID, "and", objS->recID);
+                logger::log_error(ret, "Error while computing the intersection area between objects with ids", objR->recID, "and", objS->recID);
                 return ret;
             }
-            if (direction != CD_NONE) {
-                // append cardinal direction to the relation text
-                relationText += objR->name + " is " + mapping::cardinalDirectionIntToString(direction) + " of " + objS->name + ". ";
-            }
-        }
-        // compute intersection
-        std::string intersectionText = "";
-        ret = computeIntersection(objR, objS, relation, intersectionText);
-        if (ret != DBERR_OK) {
-            logger::log_error(ret, "Error while computing the intersection area between objects with ids", objR->recID, "and", objS->recID);
+            // append intersection text
+            relationText += intersectionText;
+
             return ret;
         }
-        // append intersection text
-        relationText += intersectionText;
+    }
 
-        return ret;
+    namespace paragraphs
+    {
+        DB_STATUS computeRelationTexts(Shape* objR, Shape* objS, MBRRelationCase mbrRelationCase) {
+            DB_STATUS ret = DBERR_OK;
+            TopologyRelation relation = TR_INVALID;
+            // switch based on MBR intersection case
+            switch(mbrRelationCase) {
+                case MBR_R_IN_S:
+                    relation = refineDisjointInsideCoveredbyMeetIntersect(objR, objS);
+                    break;
+                case MBR_S_IN_R:
+                    relation = refineDisjointContainsCoversMeetIntersect(objR, objS);
+                    break;
+                case MBR_EQUAL:
+                    relation = refineEqualCoversCoveredbyTrueHitIntersect(objR, objS);
+                    break;
+                case MBR_INTERSECT:
+                    relation = refineDisjointMeetIntersect(objR, objS);
+                    break;
+                case MBR_CROSS:
+                    relation = TR_INTERSECT;
+                    break;
+                default:
+                    logger::log_error(DBERR_INVALID_PARAMETER, "Invalid mbr relation case:", mbrRelationCase);
+                    return DBERR_INVALID_PARAMETER;
+            }
+
+            // generate the topological relation
+            g_config.diskWriter.appendTextForEntity(objR->name, text_generator::generateTopologicalRelation(objR->name, objS->name, relation));
+            g_config.diskWriter.appendTextForEntity(objS->name, text_generator::generateTopologicalRelation(objS->name, objR->name, getSwappedTopologyRelation(relation)));
+                
+            // special case, in adjacency also compute the cardinal direction if possible
+            if (relation == TR_MEET || relation == TR_DISJOINT) {
+                CardinalDirection direction = CD_NONE;
+                ret = computeCardinalDirectionBetweenShapes(objR, objS, direction);
+                if (ret != DBERR_OK) {
+                    logger::log_error(ret, "Error while computing the cardinal direction between objects with ids", objR->recID, "and", objS->recID);
+                    return ret;
+                }
+                if (direction != CD_NONE) {
+                    // append cardinal direction for the entities
+                    g_config.diskWriter.appendTextForEntity(objR->name, objR->name + " is " + mapping::cardinalDirectionIntToString(direction) + " of " + objS->name + ". ");
+                    g_config.diskWriter.appendTextForEntity(objS->name, objS->name + " is " + mapping::cardinalDirectionIntToString(getOppositeCardinalDirection(direction)) + " of " + objR->name + ". ");
+                }
+            }
+            // compute intersection
+            std::string intersectionText = "";
+            ret = computeIntersection(objR, objS, relation, intersectionText);
+            if (ret != DBERR_OK) {
+                logger::log_error(ret, "Error while computing the intersection area between objects with ids", objR->recID, "and", objS->recID);
+                return ret;
+            }
+            // append intersection text
+            g_config.diskWriter.appendTextForEntity(objR->name, intersectionText);
+            g_config.diskWriter.appendTextForEntity(objS->name, intersectionText);
+                
+
+            return ret;
+        }
     }
 }

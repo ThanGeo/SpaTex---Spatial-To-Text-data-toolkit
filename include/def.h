@@ -62,6 +62,7 @@ typedef enum DB_STATUS {
     DBERR_INI_ERROR = DBBASE + 1009,
     DBERR_INVALID_PARTITION = DBBASE + 1010,
     DBERR_FILE_WRITE = DBBASE + 1011,
+    DBERR_INVALID_DOC_TYPE = DBBASE + 1012,
 } DB_STATUS;
 
 /** @enum FileFormat @brief Data file types. */
@@ -119,5 +120,10 @@ enum TopologyRelation {
     TR_INVALID = 777,
 };
 
+enum DocumentType {
+    DOC_SENTENCES,
+    DOC_PARAGRAPHS,
+    DOC_INVALID = 777,
+};
 
 #endif

@@ -62,8 +62,15 @@ namespace refinement
                     boost::geometry::de9im::mask(intersectCode4)};
 
 
+    namespace sentences
+    {
+        DB_STATUS computeRelationTexts(Shape* objR, Shape* objS, MBRRelationCase mbrRelationCase, std::string &relationText);
+    }
 
-    DB_STATUS computeRelationTexts(Shape* objR, Shape* objS, MBRRelationCase mbrRelationCase, std::string &relationText);
+    namespace paragraphs
+    {
+        DB_STATUS computeRelationTexts(Shape* objR, Shape* objS, MBRRelationCase mbrRelationCase);
+    }
 
     DB_STATUS computeCardinalDirectionBetweenShapes(Shape* objR, Shape* objS, CardinalDirection &direction);
 

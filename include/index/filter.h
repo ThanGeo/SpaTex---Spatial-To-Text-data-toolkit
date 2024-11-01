@@ -7,7 +7,15 @@
 
 namespace uniform_grid
 {
-    DB_STATUS evaluate(Dataset* R, Dataset* S);
+    namespace sentences
+    {
+        DB_STATUS evaluate(Dataset* R, Dataset* S);
+    }
+
+    namespace paragraphs
+    {
+        DB_STATUS evaluate(Dataset* R, Dataset* S);
+    }
 }
 
 #endif

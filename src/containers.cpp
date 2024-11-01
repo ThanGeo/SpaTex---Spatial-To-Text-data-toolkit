@@ -294,10 +294,22 @@ void DiskWriter::addString(std::string &str, int tid) {
 } 
 
 DB_STATUS DiskWriter::writeBuffers() {
-    for (auto &buf : this->buffers) {
-        if (!(this->output << buf)) {
-            return DBERR_FILE_WRITE;
-        }
+    switch (this->docType) {
+        case DOC_PARAGRAPHS:
+            for (auto &it : this->entityRelationMap) {
+                if (!(this->output << it.first + " information: ")) {
+                    return DBERR_FILE_WRITE;
+                }
+                if (!(this->output << it.second << std::endl)) {
+                    return DBERR_FILE_WRITE;
+                }
+            }
+        case DOC_SENTENCES:
+            for (auto &buf : this->buffers) {
+                if (!(this->output << buf)) {
+                    return DBERR_FILE_WRITE;
+                }
+            }
     }
     return DBERR_OK;
 } 
@@ -348,4 +360,23 @@ DB_STATUS DiskWriter::openOutputFilestream(std::string &filepath, bool append) {
 void DiskWriter::closeOutputFilestream() {
     this->output.flush();
     this->output.close();
+}
+
+void DiskWriter::setDocumentType(DocumentType docType) {
+    this->docType = docType;
+}
+DocumentType DiskWriter::getDocumentType() {
+    return this->docType;
+}
+
+
+void DiskWriter::appendTextForEntity(std::string entityKey, std::string text) {
+    auto it = this->entityRelationMap.find(entityKey);
+    if (it == this->entityRelationMap.end()) {
+        // new entry, set
+        this->entityRelationMap[entityKey] = text;
+    } else {
+        // entity exists, append
+        this->entityRelationMap[entityKey] += text;
+    }
 }

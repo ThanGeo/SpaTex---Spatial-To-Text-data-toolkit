@@ -42,6 +42,16 @@ static DB_STATUS verifyOutputSetupFilepath(OutputStatement &outputStmt) {
     return ret;
 }
 
+static DB_STATUS verifyDocumentTypeStatement(std::string &docTypeStr) {
+    DocumentType docType = mapping::documentTypeTextToInt(docTypeStr);
+    if (docType == DOC_INVALID) {
+        logger::log_error(DBERR_INVALID_DOC_TYPE, "Invalid output document type:", docTypeStr);
+        return DBERR_INVALID_DOC_TYPE;
+    }
+
+    return DBERR_OK;
+}
+
 static DB_STATUS verifyArguments(ArgumentsStatement &argsStmt) {
     DB_STATUS ret = DBERR_OK;
     if (!argsStmt.datasetR.set || !argsStmt.datasetS.set) {
@@ -64,6 +74,11 @@ static DB_STATUS verifyArguments(ArgumentsStatement &argsStmt) {
     ret = verifyOutputSetupFilepath(argsStmt.outputStmt);
     if (ret != DBERR_OK) {
         logger::log_error(ret, "Failed while verifying output filepath.");
+        return ret;
+    }
+    ret = verifyDocumentTypeStatement(argsStmt.outputStmt.documentType);
+    if (ret != DBERR_OK) {
+        logger::log_error(ret, "Failed while verifying output document type.");
         return ret;
     }
 
@@ -130,7 +145,7 @@ namespace parse
         boost::property_tree::ini_parser::read_ini(g_config.dirPaths.datasetsConfigPath, dataset_config_pt);
 
         // after config file has been loaded, parse cmd arguments and overwrite any selected options
-        while ((c = getopt(argc, argv, "R:S:p:t:ao:?")) != -1)
+        while ((c = getopt(argc, argv, "R:S:p:t:ao:d:?")) != -1)
         {
             switch (c)
             {
@@ -159,6 +174,9 @@ namespace parse
                 case 'o':
                     // output filepath
                     argsStmt.outputStmt.outputFilepath = std::string(optarg);
+                    break;
+                case 'd':
+                    argsStmt.outputStmt.documentType = std::string(optarg);
                     break;
                 default:
                     logger::log_error(DBERR_INVALID_ARGS, "Unkown argument:", c);
