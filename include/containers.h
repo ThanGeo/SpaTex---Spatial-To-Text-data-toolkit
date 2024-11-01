@@ -13,7 +13,6 @@ struct DatasetStatement
     bool set = false;
     std::string path = "";
     FileFormat fileFormat = FT_INVALID;
-    DataType dataType = DT_INVALID;
     std::string nickname = "";
     std::string key = "";
     std::string description = "";
@@ -222,6 +221,7 @@ public:
     double getIntersectionArea(const GeometryWrapper<bg_point_xy>& other) const {return 0.0f;}
     double getIntersectionArea(const GeometryWrapper<bg_linestring>& other) const {return 0.0f;}
     double getIntersectionArea(const GeometryWrapper<bg_rectangle>& other) const {return 0.0f;}
+    double getIntersectionArea(const GeometryWrapper<bg_multi_polygon>& other) const {return 0.0f;}
 
     void reset() {
         boost::geometry::clear(geometry);
@@ -274,7 +274,6 @@ public:
         geometry = bg_point_xy(x, y);
     }
 
-
     const std::vector<bg_point_xy>* getReferenceToPoints() const {
         logger::log_error(DBERR_INVALID_OPERATION, "Can't return reference to points on Point shape.");
         return nullptr;
@@ -292,6 +291,7 @@ public:
     std::string createMaskCode(const GeometryWrapper<bg_point_xy>& other) const {return "";}
     std::string createMaskCode(const GeometryWrapper<bg_linestring>& other) const {return "";}
     std::string createMaskCode(const GeometryWrapper<bg_rectangle>& other) const {return "";}
+    std::string createMaskCode(const GeometryWrapper<bg_multi_polygon>& other) const;
 
     template<typename OtherBoostGeometryObj>
     bool intersects(const OtherBoostGeometryObj &other) const {
@@ -304,6 +304,7 @@ public:
     }
 
     bool inside(const GeometryWrapper<bg_polygon>& other) const;
+    bool inside(const GeometryWrapper<bg_multi_polygon>& other) const;
     bool inside(const GeometryWrapper<bg_linestring>& other) const;
     bool inside(const GeometryWrapper<bg_rectangle>& other) const;
     bool inside(const GeometryWrapper<bg_point_xy>& other) const {
@@ -312,10 +313,12 @@ public:
 
     bool contains(const GeometryWrapper<bg_point_xy>& other) const {return false;}
     bool contains(const GeometryWrapper<bg_polygon>& other) const {return false;}
+    bool contains(const GeometryWrapper<bg_multi_polygon>& other) const {return false;}
     bool contains(const GeometryWrapper<bg_linestring>& other) const {return false;}
     bool contains(const GeometryWrapper<bg_rectangle>& other) const {return false;}
 
     bool meets(const GeometryWrapper<bg_polygon>& other) const;
+    bool meets(const GeometryWrapper<bg_multi_polygon>& other) const;
     bool meets(const GeometryWrapper<bg_linestring>& other) const;
     bool meets(const GeometryWrapper<bg_rectangle>& other) const {return false;}
     bool meets(const GeometryWrapper<bg_point_xy>& other) const {
@@ -324,6 +327,7 @@ public:
 
     bool equals(const GeometryWrapper<bg_linestring>& other) const {return false;}
     bool equals(const GeometryWrapper<bg_polygon>& other) const {return false;}
+    bool equals(const GeometryWrapper<bg_multi_polygon>& other) const {return false;}
     bool equals(const GeometryWrapper<bg_rectangle>& other) const {return false;}
     bool equals(const GeometryWrapper<bg_point_xy>& other) const {
         return boost::geometry::equals(geometry, other.geometry);
@@ -385,11 +389,9 @@ public:
         boost::geometry::correct(geometry);
     }
 
-    double getIntersectionArea(const GeometryWrapper<bg_point_xy> &other) const {return 0.0f;}
-    double getIntersectionArea(const GeometryWrapper<bg_linestring> &other) const {return 0.0f;}
-    double getIntersectionArea(const GeometryWrapper<bg_polygon> &other) const {return false;}
-    double getIntersectionArea(const GeometryWrapper<bg_rectangle> &other) const {
-        logger::log_error(DBERR_INVALID_OPERATION, "Operation getIntersectionArea not supported for combination boost rectangle and boost polygon.");
+    template<typename OtherGeometryType>
+    double getIntersectionArea(const GeometryWrapper<OtherGeometryType> &other) const {
+        logger::log_error(DBERR_INVALID_OPERATION, "Operation getIntersectionArea not supported for rectangle shapes.");
         return -1.0f;
     }
 
@@ -408,12 +410,10 @@ public:
         return centroid;
     }
 
-
     double getArea() {
         double degreeArea = boost::geometry::area(geometry);
         return convertDegreesToSquareKilometers(degreeArea, getCentroid().y());
     }
-
 
     void printGeometry() {
         printf("(%f,%f),(%f,%f),(%f,%f),(%f,%f)\n", geometry.min_corner().x(), geometry.min_corner().y(),
@@ -464,12 +464,14 @@ public:
     bool inside(const GeometryWrapper<bg_point_xy> &other) const {return false;}
     bool inside(const GeometryWrapper<bg_linestring> &other) const {return false;}
     bool inside(const GeometryWrapper<bg_polygon> &other) const {return false;}
+    bool inside(const GeometryWrapper<bg_multi_polygon> &other) const {return false;}
     bool inside(const GeometryWrapper<bg_rectangle> &other) const {
         return boost::geometry::within(geometry, other.geometry);
     }
 
     bool contains(const GeometryWrapper<bg_linestring> &other) const {return false;}
     bool contains(const GeometryWrapper<bg_polygon> &other) const {return false;}
+    bool contains(const GeometryWrapper<bg_multi_polygon> &other) const {return false;}
     bool contains(const GeometryWrapper<bg_rectangle> &other) const {
         return boost::geometry::within(other.geometry, geometry);
     }
@@ -480,10 +482,12 @@ public:
     bool meets(const GeometryWrapper<bg_point_xy> &other) const {return false;}
     bool meets(const GeometryWrapper<bg_linestring> &other) const {return false;}
     bool meets(const GeometryWrapper<bg_polygon> &other) const {return false;}
+    bool meets(const GeometryWrapper<bg_multi_polygon> &other) const {return false;}
     bool meets(const GeometryWrapper<bg_rectangle> &other) const {return false;}
 
     bool equals(const GeometryWrapper<bg_point_xy>& other) const {return false;}
     bool equals(const GeometryWrapper<bg_linestring>& other) const {return false;}
+    bool equals(const GeometryWrapper<bg_multi_polygon>& other) const {return false;}
     bool equals(const GeometryWrapper<bg_polygon>& other) const;
     bool equals(const GeometryWrapper<bg_rectangle>& other) const {
         return boost::geometry::equals(geometry, other.geometry);
@@ -519,6 +523,7 @@ public:
     double getIntersectionArea(const GeometryWrapper<bg_linestring> &other) const {return 0.0f;}
     double getIntersectionArea(const GeometryWrapper<bg_rectangle> &other) const {return 0.0f;}
     double getIntersectionArea(const GeometryWrapper<bg_polygon> &other) const;
+    double getIntersectionArea(const GeometryWrapper<bg_multi_polygon> &other) const;
 
     bool pipTest(const bg_point_xy &point) const {
         return false;
@@ -588,6 +593,7 @@ public:
     // topology
     // declaration
     std::string createMaskCode(const GeometryWrapper<bg_polygon>& other) const;
+    std::string createMaskCode(const GeometryWrapper<bg_multi_polygon>& other) const;
     std::string createMaskCode(const GeometryWrapper<bg_point_xy>& other) const {return "";}
     std::string createMaskCode(const GeometryWrapper<bg_rectangle>& other) const {return "";}
     // definitions
@@ -608,6 +614,7 @@ public:
 
     bool inside(const GeometryWrapper<bg_point_xy> &other) const {return false;}
     bool inside(const GeometryWrapper<bg_polygon> &other) const;
+    bool inside(const GeometryWrapper<bg_multi_polygon> &other) const;
     bool inside(const GeometryWrapper<bg_rectangle> &other) const {return false;}
     bool inside(const GeometryWrapper<bg_linestring> &other) const {
         return boost::geometry::within(geometry, other.geometry);
@@ -615,10 +622,12 @@ public:
 
     bool contains(const GeometryWrapper<bg_point_xy> &other) const {return false;}
     bool contains(const GeometryWrapper<bg_polygon> &other) const {return false;}
+    bool contains(const GeometryWrapper<bg_multi_polygon> &other) const {return false;}
     bool contains(const GeometryWrapper<bg_rectangle> &other) const {return false;}
     bool contains(const GeometryWrapper<bg_linestring> &other) const {return false;}
 
     bool meets(const GeometryWrapper<bg_polygon>& other) const;
+    bool meets(const GeometryWrapper<bg_multi_polygon>& other) const;
     bool meets(const GeometryWrapper<bg_rectangle>& other) const {return false;}
     bool meets(const GeometryWrapper<bg_point_xy>& other) const {
         return boost::geometry::touches(geometry, other.geometry);
@@ -629,6 +638,7 @@ public:
 
     bool equals(const GeometryWrapper<bg_point_xy>& other) const {return false;}
     bool equals(const GeometryWrapper<bg_polygon>& other) const {return false;}
+    bool equals(const GeometryWrapper<bg_multi_polygon>& other) const {return false;}
     bool equals(const GeometryWrapper<bg_rectangle>& other) const {return false;}
     bool equals(const GeometryWrapper<bg_linestring>& other) const {
         return boost::geometry::equals(geometry, other.geometry);
@@ -703,6 +713,7 @@ public:
 
     double getIntersectionArea(const GeometryWrapper<bg_linestring>& other) const {return 0.0f;}
     double getIntersectionArea(const GeometryWrapper<bg_point_xy>& other) const {return 0.0f;}
+    double getIntersectionArea(const GeometryWrapper<bg_multi_polygon>& other) const;
     double getIntersectionArea(const GeometryWrapper<bg_rectangle>& other) const {
         std::vector<bg_polygon> output;
         boost::geometry::intersection(geometry, other.geometry, output);
@@ -754,6 +765,7 @@ public:
 
     // topology definitions
     std::string createMaskCode(const GeometryWrapper<bg_rectangle>& other) const {return "";};
+    std::string createMaskCode(const GeometryWrapper<bg_multi_polygon>& other) const;
     std::string createMaskCode(const GeometryWrapper<bg_polygon>& other) const {
         boost::geometry::de9im::matrix matrix = boost::geometry::relation(geometry, other.geometry);
         return matrix.str();
@@ -780,7 +792,197 @@ public:
     bool inside(const GeometryWrapper<bg_point_xy>& other) const {return false;}
     bool inside(const GeometryWrapper<bg_linestring>& other) const {return false;}
     bool inside(const GeometryWrapper<bg_rectangle>& other) const {return false;}
+    bool inside(const GeometryWrapper<bg_multi_polygon>& other) const;
     bool inside(const GeometryWrapper<bg_polygon>& other) const {
+        return boost::geometry::within(geometry, other.geometry);
+    }
+
+    bool contains(const GeometryWrapper<bg_rectangle>& other) const {return false;}
+    bool contains(const GeometryWrapper<bg_multi_polygon>& other) const;
+    bool contains(const GeometryWrapper<bg_polygon>& other) const {
+        return boost::geometry::within(other.geometry, geometry);
+    }
+    bool contains(const GeometryWrapper<bg_point_xy>& other) const {
+        return boost::geometry::within(other.geometry, geometry);
+    }
+    bool contains(const GeometryWrapper<bg_linestring>& other) const {
+        return boost::geometry::within(other.geometry, geometry);
+    }
+
+    bool meets(const GeometryWrapper<bg_rectangle>& other) const {return false;}
+    bool meets(const GeometryWrapper<bg_multi_polygon>& other) const;
+    bool meets(const GeometryWrapper<bg_polygon>& other) const {
+        return boost::geometry::touches(geometry, other.geometry);
+    }
+    bool meets(const GeometryWrapper<bg_point_xy>& other) const {
+        return boost::geometry::touches(geometry, other.geometry);
+    }
+    bool meets(const GeometryWrapper<bg_linestring>& other) const {
+        return boost::geometry::touches(geometry, other.geometry);
+    }
+
+    bool equals(const GeometryWrapper<bg_point_xy>& other) const {return false;}
+    bool equals(const GeometryWrapper<bg_linestring>& other) const {return false;}
+    bool equals(const GeometryWrapper<bg_multi_polygon>& other) const;
+    bool equals(const GeometryWrapper<bg_polygon>& other) const {
+        return boost::geometry::equals(geometry, other.geometry);
+    }
+    bool equals(const GeometryWrapper<bg_rectangle>& other) const {
+        return boost::geometry::equals(geometry, other.geometry);
+    }
+};
+
+// multi_polygon
+template<>
+struct GeometryWrapper<bg_multi_polygon> {
+public:
+    bg_multi_polygon geometry;
+    GeometryWrapper(){}
+    GeometryWrapper(const bg_multi_polygon &geom) : geometry(geom) {}
+
+    void addPoint(const double x, const double y) {
+        logger::log_error(DBERR_INVALID_OPERATION, "Method 'addPoint()' not supported for multi polygon shape.");
+    }
+
+    void correctGeometry() {
+        boost::geometry::correct(geometry);
+    }
+
+    void printGeometry() {
+        std::cout << "MultiPolygon WKT: " << boost::geometry::wkt(geometry) << std::endl;
+    }
+
+    void getBoostEnvelope(bg_rectangle &envelope) {
+        boost::geometry::envelope(geometry, envelope);
+    }
+
+    DB_STATUS setFromWKT(std::string &wktText) {
+        // check if it is correct
+        if (wktText.find("MULTIPOLYGON") == std::string::npos) {
+            // it is not a multipolygon WKT, ignore
+            // logger::log_warning("WKT text passed into set point from WKT is not a polygon:", wktText);
+            return DBERR_INVALID_GEOMETRY;
+        }
+        // load
+        boost::geometry::read_wkt(wktText, geometry);
+        // correct
+        correctGeometry();
+        // check if valid
+        std::string reason;
+        if (!boost::geometry::is_valid(geometry,reason)) {
+            // invalid geometry, reset and return error
+            reset();
+            // logger::log_warning("Polygon geometry is invalid:", wktText, "Reason:", reason);
+            return DBERR_INVALID_GEOMETRY;
+        }
+        return DBERR_OK;
+    }
+
+    void reset() {
+        boost::geometry::clear(geometry);
+    }
+
+    bg_point_xy getCentroid() const {
+        bg_point_xy centroid;
+        boost::geometry::centroid(this->geometry, centroid);
+        return centroid;
+    }
+
+    double getIntersectionArea(const GeometryWrapper<bg_linestring>& other) const {return 0.0f;}
+    double getIntersectionArea(const GeometryWrapper<bg_point_xy>& other) const {return 0.0f;}
+    double getIntersectionArea(const GeometryWrapper<bg_rectangle>& other) const {
+        std::vector<bg_polygon> output;
+        boost::geometry::intersection(geometry, other.geometry, output);
+
+        double degreeArea = 0;
+        for (auto &it : output) {
+            degreeArea += boost::geometry::area(it);
+        }
+        return convertDegreesToSquareKilometers(degreeArea, getCentroid().y());
+    }
+
+    double getIntersectionArea(const GeometryWrapper<bg_polygon>& other) const {
+        std::vector<bg_polygon> output;
+        boost::geometry::intersection(geometry, other.geometry, output);
+
+        double degreeArea = 0;
+        for (auto &it : output) {
+            degreeArea += boost::geometry::area(it);
+        }
+        return convertDegreesToSquareKilometers(degreeArea, getCentroid().y());
+    }
+
+    double getIntersectionArea(const GeometryWrapper<bg_multi_polygon>& other) const {
+        std::vector<bg_polygon> output;
+        boost::geometry::intersection(geometry, other.geometry, output);
+
+        double degreeArea = 0;
+        for (auto &it : output) {
+            degreeArea += boost::geometry::area(it);
+        }
+        return convertDegreesToSquareKilometers(degreeArea, getCentroid().y());
+    }
+
+    double getArea() {
+        double degreeArea = boost::geometry::area(geometry);
+        return convertDegreesToSquareKilometers(degreeArea, getCentroid().y());
+    }
+
+    void modifyBoostPointByIndex(int index, double x, double y) {
+        logger::log_error(DBERR_INVALID_OPERATION, "Method 'modifyBoostPointByIndex()' not supported for multi polygon shape.");
+    }
+
+    const std::vector<bg_point_xy>* getReferenceToPoints() const {
+        logger::log_error(DBERR_INVALID_OPERATION, "Method 'getReferenceToPoints()' not supported for multi polygon shape.");
+        return nullptr;
+    }
+
+    int getVertexCount() const {
+        logger::log_error(DBERR_INVALID_OPERATION, "Method 'getVertexCount()' not supported for multi polygon shape.");
+        return -1;
+    }
+
+    // APRIL
+    bool pipTest(const bg_point_xy &point) const {
+        return boost::geometry::within(point, geometry);
+    }
+
+    // topology definitions
+    std::string createMaskCode(const GeometryWrapper<bg_rectangle>& other) const {return "";};
+    std::string createMaskCode(const GeometryWrapper<bg_polygon>& other) const {
+        boost::geometry::de9im::matrix matrix = boost::geometry::relation(geometry, other.geometry);
+        return matrix.str();
+    }
+    std::string createMaskCode(const GeometryWrapper<bg_linestring>& other) const {
+        boost::geometry::de9im::matrix matrix = boost::geometry::relation(geometry, other.geometry);
+        return matrix.str();
+    }
+    std::string createMaskCode(const GeometryWrapper<bg_point_xy>& other) const {
+        boost::geometry::de9im::matrix matrix = boost::geometry::relation(geometry, other.geometry);
+        return matrix.str();
+    }
+    std::string createMaskCode(const GeometryWrapper<bg_multi_polygon>& other) const {
+        boost::geometry::de9im::matrix matrix = boost::geometry::relation(geometry, other.geometry);
+        return matrix.str();
+    }
+
+    template<typename OtherBoostGeometryObj>
+    bool intersects(const OtherBoostGeometryObj &other) const {
+        return boost::geometry::intersects(geometry, other.geometry);
+    }
+
+    template<typename OtherBoostGeometryObj>
+    bool disjoint(const OtherBoostGeometryObj &other) const {
+        return boost::geometry::disjoint(geometry, other.geometry);
+    }
+
+    bool inside(const GeometryWrapper<bg_point_xy>& other) const {return false;}
+    bool inside(const GeometryWrapper<bg_linestring>& other) const {return false;}
+    bool inside(const GeometryWrapper<bg_rectangle>& other) const {return false;}
+    bool inside(const GeometryWrapper<bg_polygon>& other) const {
+        return boost::geometry::within(geometry, other.geometry);
+    }
+    bool inside(const GeometryWrapper<bg_multi_polygon>& other) const {
         return boost::geometry::within(geometry, other.geometry);
     }
 
@@ -794,6 +996,9 @@ public:
     bool contains(const GeometryWrapper<bg_linestring>& other) const {
         return boost::geometry::within(other.geometry, geometry);
     }
+    bool contains(const GeometryWrapper<bg_multi_polygon>& other) const {
+        return boost::geometry::within(other.geometry, geometry);
+    }
 
     bool meets(const GeometryWrapper<bg_rectangle>& other) const {return false;}
     bool meets(const GeometryWrapper<bg_polygon>& other) const {
@@ -805,13 +1010,17 @@ public:
     bool meets(const GeometryWrapper<bg_linestring>& other) const {
         return boost::geometry::touches(geometry, other.geometry);
     }
+    bool meets(const GeometryWrapper<bg_multi_polygon>& other) const {
+        return boost::geometry::touches(geometry, other.geometry);
+    }
 
     bool equals(const GeometryWrapper<bg_point_xy>& other) const {return false;}
     bool equals(const GeometryWrapper<bg_linestring>& other) const {return false;}
+    bool equals(const GeometryWrapper<bg_rectangle>& other) const {return false;}
     bool equals(const GeometryWrapper<bg_polygon>& other) const {
         return boost::geometry::equals(geometry, other.geometry);
     }
-    bool equals(const GeometryWrapper<bg_rectangle>& other) const {
+    bool equals(const GeometryWrapper<bg_multi_polygon>& other) const {
         return boost::geometry::equals(geometry, other.geometry);
     }
 };
@@ -824,19 +1033,37 @@ inline std::string GeometryWrapper<bg_linestring>::createMaskCode(const Geometry
     boost::geometry::de9im::matrix matrix = boost::geometry::relation(geometry, other.geometry);
     return matrix.str();
 }
+inline std::string GeometryWrapper<bg_linestring>::createMaskCode(const GeometryWrapper<bg_multi_polygon>& other) const {
+    boost::geometry::de9im::matrix matrix = boost::geometry::relation(geometry, other.geometry);
+    return matrix.str();
+}
 inline double GeometryWrapper<bg_linestring>::getIntersectionArea(const GeometryWrapper<bg_polygon> &other) const {return 0.0f;}
+inline double GeometryWrapper<bg_linestring>::getIntersectionArea(const GeometryWrapper<bg_multi_polygon> &other) const {return 0.0f;}
 
 /** @brief Overloaded method for the 'inside' relate predicate query for Linestring-Polygon cases.*/
 inline bool GeometryWrapper<bg_linestring>::inside(const GeometryWrapper<bg_polygon> &other) const {
+    return boost::geometry::within(geometry, other.geometry);
+}
+/** @brief Overloaded method for the 'inside' relate predicate query for Linestring-MultiPolygon cases.*/
+inline bool GeometryWrapper<bg_linestring>::inside(const GeometryWrapper<bg_multi_polygon> &other) const {
     return boost::geometry::within(geometry, other.geometry);
 }
 /** @brief Overloaded method for the 'meets' relate predicate query for Linestring-Polygon cases.*/
 inline bool GeometryWrapper<bg_linestring>::meets(const GeometryWrapper<bg_polygon> &other) const {
     return boost::geometry::touches(geometry, other.geometry);
 }
+/** @brief Overloaded method for the 'meets' relate predicate query for Linestring-MultiPolygon cases.*/
+inline bool GeometryWrapper<bg_linestring>::meets(const GeometryWrapper<bg_multi_polygon> &other) const {
+    return boost::geometry::touches(geometry, other.geometry);
+}
 
 /** @brief Overloaded method for creating the DE-9IM mask code for Point-Polygon cases.*/
 inline std::string GeometryWrapper<bg_point_xy>::createMaskCode(const GeometryWrapper<bg_polygon>& other) const  {
+    boost::geometry::de9im::matrix matrix = boost::geometry::relation(geometry, other.geometry);
+    return matrix.str();
+}
+/** @brief Overloaded method for creating the DE-9IM mask code for Point-MultiPolygon cases.*/
+inline std::string GeometryWrapper<bg_point_xy>::createMaskCode(const GeometryWrapper<bg_multi_polygon>& other) const  {
     boost::geometry::de9im::matrix matrix = boost::geometry::relation(geometry, other.geometry);
     return matrix.str();
 }
@@ -852,6 +1079,10 @@ inline bool GeometryWrapper<bg_point_xy>::inside(const GeometryWrapper<bg_rectan
 inline bool GeometryWrapper<bg_point_xy>::inside(const GeometryWrapper<bg_polygon> &other) const {
     return boost::geometry::within(geometry, other.geometry);
 }
+/** @brief Overloaded method for the 'inside' relate predicate query for Point-MultiPolygon cases.*/
+inline bool GeometryWrapper<bg_point_xy>::inside(const GeometryWrapper<bg_multi_polygon> &other) const {
+    return boost::geometry::within(geometry, other.geometry);
+}
 /** @brief Overloaded method for the 'meets' relate predicate query for Point-Linestring cases.*/
 inline bool GeometryWrapper<bg_point_xy>::meets(const GeometryWrapper<bg_linestring> &other) const {
     return boost::geometry::touches(geometry, other.geometry);
@@ -860,11 +1091,43 @@ inline bool GeometryWrapper<bg_point_xy>::meets(const GeometryWrapper<bg_linestr
 inline bool GeometryWrapper<bg_point_xy>::meets(const GeometryWrapper<bg_polygon> &other) const {
     return boost::geometry::touches(geometry, other.geometry);
 }
+/** @brief Overloaded method for the 'meets' relate predicate query for Point-MultiPolygon cases.*/
+inline bool GeometryWrapper<bg_point_xy>::meets(const GeometryWrapper<bg_multi_polygon> &other) const {
+    return boost::geometry::touches(geometry, other.geometry);
+}
 
 /** @brief Overloaded method for the 'equals' relate predicate query for Rectangle-Polygon cases.*/
 inline bool GeometryWrapper<bg_rectangle>::equals(const GeometryWrapper<bg_polygon>& other) const {
     return boost::geometry::equals(geometry, other.geometry);
 }
+
+inline double GeometryWrapper<bg_polygon>::getIntersectionArea(const GeometryWrapper<bg_multi_polygon>& other) const {
+    std::vector<bg_polygon> output;
+    boost::geometry::intersection(geometry, other.geometry, output);
+
+    double degreeArea = 0;
+    for (auto &it : output) {
+        degreeArea += boost::geometry::area(it);
+    }
+    return convertDegreesToSquareKilometers(degreeArea, getCentroid().y());
+}
+inline std::string GeometryWrapper<bg_polygon>::createMaskCode(const GeometryWrapper<bg_multi_polygon>& other) const {
+    boost::geometry::de9im::matrix matrix = boost::geometry::relation(geometry, other.geometry);
+    return matrix.str();
+}
+inline bool GeometryWrapper<bg_polygon>::inside(const GeometryWrapper<bg_multi_polygon>& other) const {
+    return boost::geometry::within(geometry, other.geometry);
+}
+inline bool GeometryWrapper<bg_polygon>::contains(const GeometryWrapper<bg_multi_polygon>& other) const {
+    return boost::geometry::within(other.geometry, geometry);
+}
+inline bool GeometryWrapper<bg_polygon>::meets(const GeometryWrapper<bg_multi_polygon>& other) const {
+    return boost::geometry::touches(geometry, other.geometry);
+}
+inline bool GeometryWrapper<bg_polygon>::equals(const GeometryWrapper<bg_multi_polygon>& other) const {
+    return boost::geometry::equals(geometry, other.geometry);
+}
+
 
 /** @typedef PointWrapper @brief type definition for the point wrapper*/
 using PointWrapper = GeometryWrapper<bg_point_xy>;
@@ -874,9 +1137,11 @@ using PolygonWrapper = GeometryWrapper<bg_polygon>;
 using LineStringWrapper = GeometryWrapper<bg_linestring>;
 /** @typedef RectangleWrapper @brief type definition for the rectangle wrapper*/
 using RectangleWrapper = GeometryWrapper<bg_rectangle>;
+/** @typedef RectangleWrapper @brief type definition for the rectangle wrapper*/
+using MultiPolygonWrapper = GeometryWrapper<bg_multi_polygon>;
 
 /** @typedef ShapeVariant @brief All the allowed Shape variants (geometry wrappers). */
-using ShapeVariant = std::variant<PointWrapper, PolygonWrapper, LineStringWrapper, RectangleWrapper>;
+using ShapeVariant = std::variant<PointWrapper, PolygonWrapper, LineStringWrapper, RectangleWrapper, MultiPolygonWrapper>;
 
 /**
  * @brief A spatial object. Could be point, linestring, rectangle or polygon, as specified by its 'dataType' field.
@@ -900,6 +1165,8 @@ private:
 public:
     /** @brief the object's ID, as read by the data file. */
     size_t recID;
+    /** @brief the shape's data type. */
+    DataType type;
     /** @brief the object's MBR. */
     MBR mbr;
     /** @brief the entity's name */
@@ -909,7 +1176,10 @@ public:
 
     /** @brief Default empty expicit type Shape constructor. */
     template<typename T>
-    explicit Shape(T geom) : shape(geom) {}
+    explicit Shape(T geom, DataType datatype) {
+        shape = geom;
+        type = datatype;
+    }
 
     // Method to get the name/type of the shape variant
     std::string getShapeType() const {
@@ -1244,6 +1514,7 @@ namespace shape_factory
     Shape createEmptyPolygonShape();
     Shape createEmptyLineStringShape();
     Shape createEmptyRectangleShape();
+    Shape createEmptyMultiPolygonShape();
 
     /** @brief creates an empty shape object of the specified data type.
      * @param dataType the requested data type of the Shape object
@@ -1319,7 +1590,6 @@ public:
  * @brief All dataset related information.
  */
 struct Dataset{
-    DataType dataType;
     FileFormat fileFormat;
     std::string path;
     // derived from the path

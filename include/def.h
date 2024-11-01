@@ -36,6 +36,8 @@ typedef boost::geometry::model::linestring<bg_point_xy> bg_linestring;
 typedef boost::geometry::model::box<bg_point_xy> bg_rectangle;
 /** @typedef bg_polygon @brief boost geometry polygon definition. */
 typedef boost::geometry::model::polygon<bg_point_xy> bg_polygon;
+/** @typedef bg_multi_polygon @brief boost geometry multipolygon definition. */
+typedef boost::geometry::model::multi_polygon<bg_polygon> bg_multi_polygon;
 
 #define DBBASE 100000
 /** @brief Flags/states for status reporting. 
@@ -77,6 +79,7 @@ enum DataType{
     DT_LINESTRING,
     DT_RECTANGLE,
     DT_POLYGON,
+    DT_MULTIPOLYGON,
 };
 
 enum DatasetIndex {

@@ -4,7 +4,6 @@ Config g_config;
 
 Dataset::Dataset(DatasetStatement &stmt){
     this->path = stmt.path;
-    this->dataType = stmt.dataType;
     this->fileFormat = stmt.fileFormat;
     this->nickname = stmt.nickname;
     this->key = stmt.key;
@@ -243,19 +242,23 @@ namespace shape_factory
 {
     // Create empty shapes
     Shape createEmptyPointShape() {
-        return Shape(PointWrapper());
+        return Shape(PointWrapper(), DT_POINT);
     }
 
     Shape createEmptyPolygonShape() {
-        return Shape(PolygonWrapper());
+        return Shape(PolygonWrapper(), DT_POLYGON);
     }
 
     Shape createEmptyLineStringShape() {
-        return Shape(LineStringWrapper());
+        return Shape(LineStringWrapper(), DT_LINESTRING);
     }
 
     Shape createEmptyRectangleShape() {
-        return Shape(RectangleWrapper());
+        return Shape(RectangleWrapper(), DT_RECTANGLE);
+    }
+
+    Shape createEmptyMultiPolygonShape() {
+        return Shape(MultiPolygonWrapper(), DT_MULTIPOLYGON);
     }
 
     DB_STATUS createEmpty(DataType dataType, Shape &object) {
@@ -271,6 +274,9 @@ namespace shape_factory
                 break;
             case DT_POLYGON:
                 object = createEmptyPolygonShape();
+                break;
+            case DT_MULTIPOLYGON:
+                object = createEmptyMultiPolygonShape();
                 break;
             default:
                 logger::log_error(DBERR_INVALID_DATATYPE, "Invalid datatype in factory method:", dataType);

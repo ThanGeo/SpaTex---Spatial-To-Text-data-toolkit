@@ -22,12 +22,6 @@ static DB_STATUS verifyDatasetStatement(DatasetStatement &datasetStmt) {
         return DBERR_INVALID_ARGS;
     }
 
-    // check data type
-    if (datasetStmt.dataType == DT_INVALID) {
-        logger::log_error(DBERR_INVALID_ARGS, "Dataset data type invalid or not set (use -r or -s to set for R and S respectively):", mapping::dataTypeIntToStr(datasetStmt.dataType));
-        return DBERR_INVALID_ARGS;
-    }
-
     return DBERR_OK;
 }
 
@@ -92,15 +86,6 @@ static DB_STATUS loadMetadata(DatasetStatement &stmt) {
     catch(const std::exception& e) {
         logger::log_task(e.what());
         logger::log_error(DBERR_INI_ERROR, "'filetype' invalid or missing parameter from datasets.ini configuration file for dataset", stmt.nickname);
-        return DBERR_INI_ERROR;
-    }
-
-    try {
-        stmt.dataType = mapping::dataTypeTextToInt(dataset_config_pt.get<std::string>(stmt.nickname+".datatype"));
-    }
-    catch(const std::exception& e) {
-        logger::log_task(e.what());
-        logger::log_error(DBERR_INI_ERROR, "'datatype' invalid or missing parameter from datasets.ini configuration file for dataset", stmt.nickname);
         return DBERR_INI_ERROR;
     }
 

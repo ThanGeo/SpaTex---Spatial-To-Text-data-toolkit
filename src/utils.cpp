@@ -61,6 +61,7 @@ namespace mapping
             case DT_RECTANGLE: return "RECTANGLE";
             case DT_POINT: return "POINT";
             case DT_LINESTRING: return "LINESTRING";
+            case DT_MULTIPOLYGON: return "MULTIPOLYGON";
             default: return "";
         }
     }
@@ -70,7 +71,9 @@ namespace mapping
         else if (str.compare("RECTANGLE") == 0) return DT_RECTANGLE;
         else if (str.compare("POINT") == 0) return DT_POINT;
         else if (str.compare("LINESTRING") == 0) return DT_LINESTRING;
+        else if (str.compare("MULTIPOLYGON") == 0) return DT_MULTIPOLYGON;
 
+        logger::log_error(DBERR_INVALID_DATATYPE, "Invalid data type matching for string:", str);
         return DT_INVALID;
     }
 

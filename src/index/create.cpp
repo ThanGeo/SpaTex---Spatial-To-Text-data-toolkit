@@ -54,59 +54,60 @@ namespace uniform_grid
         size_t lineCounter = 0;
         size_t totalValidObjects = 0;
 
-        // create empty object based on data type
-        Shape object;
-        ret = shape_factory::createEmpty(dataset->dataType, object);
-        if (ret != DBERR_OK) {
-            // error creating shape
-            logger::log_error(ret, "Failed while creating empty shape.");
-            return ret;
-        } else {
-            // shape created
-            std::string token;
-            std::string wktData;
-            // loop lines
-            while (std::getline(fin, line)) {
-                // reset shape object
-                object.reset();            
-                // parse line
-                std::stringstream ss(line);
-                int currentCol = -1;
-                // get the wkt data
-                while (currentCol < dataset->wktColIdx) {
-                    std::getline(ss, token, '\t');
-                    currentCol++;
-                }
-                wktData = token;
-                // set object from the WKT
-                ret = object.setFromWKT(wktData);
-                if (ret == DBERR_INVALID_GEOMETRY) {
-                    // this line is not the appropriate geometry type, so just ignore
-                    ret = DBERR_OK;
-                } else if (ret != DBERR_OK) {
-                    // some other error occured, interrupt
-                    logger::log_error(ret, "Setting object shape from WKT failed.");
-                    return ret;
-                } else {
-                    // valid object
-                    totalValidObjects += 1;
-                    // set the MBR
-                    object.setMBR();
-                    // set dataspace bounds
-                    global_xMin = std::min(global_xMin, object.mbr.pMin.x);
-                    global_yMin = std::min(global_yMin, object.mbr.pMin.y);
-                    global_xMax = std::max(global_xMax, object.mbr.pMax.x);
-                    global_yMax = std::max(global_yMax, object.mbr.pMax.y);
-                    
-                }
-                lineCounter += 1;
+        // shape created
+        std::string token;
+        std::string wktData;
+        // loop lines
+        while (std::getline(fin, line)) {     
+            // parse line
+            std::stringstream ss(line);
+            int currentCol = -1;
+            // get the wkt data
+            while (currentCol < dataset->wktColIdx) {
+                std::getline(ss, token, '\t');
+                currentCol++;
             }
-            // update dataset dataspace
-            dataset->dataspaceMetadata.set(global_xMin, global_yMin, global_xMax, global_yMax);
-            // close file
-            fin.close();
+            wktData = token;
+            // get data type
+            std::stringstream typess(wktData);
+            std::getline(typess, token, '(');
+            DataType datatype = mapping::dataTypeTextToInt(token);
+            // create object
+            Shape object;
+            ret = shape_factory::createEmpty(datatype, object);
+            if (ret != DBERR_OK) {
+                // error creating shape
+                logger::log_error(ret, "Failed while creating empty shape of data type", mapping::dataTypeIntToStr(datatype));
+                return ret;
+            }
+            // set object from the WKT
+            ret = object.setFromWKT(wktData);
+            if (ret == DBERR_INVALID_GEOMETRY) {
+                // this line is not the appropriate geometry type, so just ignore
+                ret = DBERR_OK;
+            } else if (ret != DBERR_OK) {
+                // some other error occured, interrupt
+                logger::log_error(ret, "Setting object shape from WKT failed.");
+                return ret;
+            } else {
+                // valid object
+                totalValidObjects += 1;
+                // set the MBR
+                object.setMBR();
+                // set dataspace bounds
+                global_xMin = std::min(global_xMin, object.mbr.pMin.x);
+                global_yMin = std::min(global_yMin, object.mbr.pMin.y);
+                global_xMax = std::max(global_xMax, object.mbr.pMax.x);
+                global_yMax = std::max(global_yMax, object.mbr.pMax.y);
+                
+            }
+            lineCounter += 1;
         }
-
+        // update dataset dataspace
+        dataset->dataspaceMetadata.set(global_xMin, global_yMin, global_xMax, global_yMax);
+        // close file
+        fin.close();
+        
         return ret;
     }
 
@@ -125,66 +126,70 @@ namespace uniform_grid
         int partitionID;
         size_t lineCounter = 0;
         size_t totalValidObjects = 0;
-        // create empty object based on data type
-        Shape object;
-        ret = shape_factory::createEmpty(dataset->dataType, object);
-        if (ret != DBERR_OK) {
-            // error creating shape
-            return ret;
-        } else {
-            // shape created
-            std::string token;
-            std::string wktData;
-            // loop lines (todo: first count lines, then make parallel load)
-            while (std::getline(fin, line)) {
-                // reset shape object
-                object.reset();            
-                // parse line
-                std::stringstream ss(line);
-                int currentCol = -1;
-                // get the wkt data
-                while (currentCol < dataset->wktColIdx) {
-                    std::getline(ss, token, '\t');
-                    currentCol++;
-                }
-                wktData = token;
-                // get the name of the entity
-                while (currentCol < dataset->nameColIdx) {
-                    std::getline(ss, token, '\t');
-                    currentCol++;
-                }
-                // add as object name the dataset type + object name
-                object.name = dataset->description + " " + token;
-                // set rec ID
-                object.recID = lineCounter;
-                // set object from the WKT
-                ret = object.setFromWKT(wktData);
-                if (ret == DBERR_INVALID_GEOMETRY) {
-                    // this line is not the appropriate geometry type, so just ignore
-                    ret = DBERR_OK;
-                } else if (ret != DBERR_OK) {
-                    // some other error occured, interrupt
-                    return ret;
-                } else {
-                    // valid object
-                    totalValidObjects += 1;
-                    // set the MBR
-                    object.setMBR();
-                    // calculate partitions
-                    std::vector<int> partitionIDs;
-                    ret = getPartitionsForMBR(object.mbr, partitionIDs);
-                    if (ret != DBERR_OK) {
-                        return ret;
-                    }
-                    object.setPartitions(partitionIDs, partitionIDs.size());
-                    // add to index
-                    dataset->addObject(object);
-                }
-                lineCounter += 1;
+        
+        // shape created
+        std::string token;
+        std::string wktData;
+        // loop lines (todo: first count lines, then make parallel load)
+        while (std::getline(fin, line)) {
+            // parse line
+            std::stringstream ss(line);
+            int currentCol = -1;
+            // get the wkt data
+            while (currentCol < dataset->wktColIdx) {
+                std::getline(ss, token, '\t');
+                currentCol++;
             }
-            // close file
-            fin.close();
+            wktData = token;
+            // get data type
+            std::string datatypeStr;
+            std::stringstream typess(wktData);
+            std::getline(typess, datatypeStr, '(');
+            DataType datatype = mapping::dataTypeTextToInt(datatypeStr);
+            // create object
+            Shape object;
+            ret = shape_factory::createEmpty(datatype, object);
+            if (ret != DBERR_OK) {
+                // error creating shape
+                logger::log_error(ret, "Failed while creating empty shape of data type", mapping::dataTypeIntToStr(datatype));
+                return ret;
+            }
+            // get the name of the entity
+            while (currentCol < dataset->nameColIdx) {
+                std::getline(ss, token, '\t');
+                currentCol++;
+            }
+            // add as object name the dataset type + object name
+            object.name = dataset->description + " " + token;
+            // set rec ID
+            object.recID = lineCounter;
+            // set object from the WKT
+            ret = object.setFromWKT(wktData);
+            if (ret == DBERR_INVALID_GEOMETRY) {
+                // this line is not the appropriate geometry type, so just ignore
+                ret = DBERR_OK;
+            } else if (ret != DBERR_OK) {
+                // some other error occured, interrupt
+                return ret;
+            } else {
+                // valid object
+                totalValidObjects += 1;
+                // set the MBR
+                object.setMBR();
+                // calculate partitions
+                std::vector<int> partitionIDs;
+                ret = getPartitionsForMBR(object.mbr, partitionIDs);
+                if (ret != DBERR_OK) {
+                    return ret;
+                }
+                object.setPartitions(partitionIDs, partitionIDs.size());
+                // add to index
+                dataset->addObject(object);
+            }
+            lineCounter += 1;
         }
+        // close file
+        fin.close();
 
         return ret;
     }
