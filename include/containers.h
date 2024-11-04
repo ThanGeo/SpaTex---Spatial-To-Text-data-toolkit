@@ -1635,6 +1635,7 @@ private:
     Dataset* R;
     Dataset* S;
     int numberOfDatasets;
+    bool selfJoin = false;
 
 public:
     std::unordered_map<std::string,Dataset> datasets;
@@ -1659,6 +1660,9 @@ public:
     DB_STATUS addDataset(DatasetIndex datasetIdx, Dataset &dataset);
 
     void updateDataspace();
+
+    void setSelfJoin(bool val);
+    bool getSelfJoin();
 };
 
 struct DirectoryPaths {

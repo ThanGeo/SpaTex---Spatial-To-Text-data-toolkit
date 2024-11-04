@@ -17,6 +17,11 @@ namespace config
             logger::log_error(ret, "Failed while adding dataset R to config.");
             return ret;
         }
+        // check if self-join
+        if (g_config.datasetMetadata.getDatasetR()->path.compare(g_config.datasetMetadata.getDatasetS()->path) == 0) {
+            g_config.datasetMetadata.setSelfJoin(true);
+            logger::log_success("Self-join enabled.");
+        }
         // open output file
         ret = g_config.diskWriter.openOutputFilestream(argStmt.outputStmt.outputFilepath, argStmt.outputStmt.append);
         if (ret != DBERR_OK) {
@@ -25,7 +30,7 @@ namespace config
         }
         // set document output file
         g_config.diskWriter.setDocumentType(mapping::documentTypeTextToInt(argStmt.outputStmt.documentType));
-        
+
         return ret;
     }
 }

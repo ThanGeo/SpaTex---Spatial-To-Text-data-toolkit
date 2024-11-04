@@ -256,8 +256,10 @@ namespace refinement
 
             // generate the topological relation
             g_config.diskWriter.appendTextForEntity(objR->name, text_generator::generateTopologicalRelation(objR->name, objS->name, relation));
-            g_config.diskWriter.appendTextForEntity(objS->name, text_generator::generateTopologicalRelation(objS->name, objR->name, getSwappedTopologyRelation(relation)));
-                
+            if (!g_config.datasetMetadata.getSelfJoin()) {
+                // if not a self join, get the reverse relation too
+                g_config.diskWriter.appendTextForEntity(objS->name, text_generator::generateTopologicalRelation(objS->name, objR->name, getSwappedTopologyRelation(relation)));
+            }
             // special case, in adjacency also compute the cardinal direction if possible
             if (relation == TR_MEET || relation == TR_DISJOINT) {
                 CardinalDirection direction = CD_NONE;
@@ -269,7 +271,10 @@ namespace refinement
                 if (direction != CD_NONE) {
                     // append cardinal direction for the entities
                     g_config.diskWriter.appendTextForEntity(objR->name, objR->name + " is " + mapping::cardinalDirectionIntToString(direction) + " of " + objS->name + ". ");
-                    g_config.diskWriter.appendTextForEntity(objS->name, objS->name + " is " + mapping::cardinalDirectionIntToString(getOppositeCardinalDirection(direction)) + " of " + objR->name + ". ");
+                    if (!g_config.datasetMetadata.getSelfJoin()) {
+                        // if not a self join, get the reverse relation too
+                        g_config.diskWriter.appendTextForEntity(objS->name, objS->name + " is " + mapping::cardinalDirectionIntToString(getOppositeCardinalDirection(direction)) + " of " + objR->name + ". ");
+                    }
                 }
             }
             // compute intersection
@@ -281,7 +286,10 @@ namespace refinement
             }
             // append intersection text
             g_config.diskWriter.appendTextForEntity(objR->name, intersectionText);
-            g_config.diskWriter.appendTextForEntity(objS->name, intersectionText);
+            if (!g_config.datasetMetadata.getSelfJoin()) {
+                // if not a self join, get the reverse relation too
+                g_config.diskWriter.appendTextForEntity(objS->name, intersectionText);
+            }
                 
 
             return ret;

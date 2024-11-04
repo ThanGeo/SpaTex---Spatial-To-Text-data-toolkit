@@ -187,6 +187,13 @@ void DatasetMetadata::updateDataspace() {
     }
 }
 
+void DatasetMetadata::setSelfJoin(bool val) {
+    this->selfJoin = val;
+}
+
+bool DatasetMetadata::getSelfJoin() {
+    return this->selfJoin;
+}
 
 Partition* UniformGridIndex::getOrCreatePartition(int partitionID) {
     // return &it->second;
@@ -304,12 +311,14 @@ DB_STATUS DiskWriter::writeBuffers() {
                     return DBERR_FILE_WRITE;
                 }
             }
+            break;
         case DOC_SENTENCES:
             for (auto &buf : this->buffers) {
                 if (!(this->output << buf)) {
                     return DBERR_FILE_WRITE;
                 }
             }
+            break;
     }
     return DBERR_OK;
 } 
@@ -370,7 +379,7 @@ DocumentType DiskWriter::getDocumentType() {
 }
 
 
-void DiskWriter::appendTextForEntity(std::string entityKey, std::string text) {
+void DiskWriter::appendTextForEntity(std::string entityKey, std::string text) {   
     auto it = this->entityRelationMap.find(entityKey);
     if (it == this->entityRelationMap.end()) {
         // new entry, set
