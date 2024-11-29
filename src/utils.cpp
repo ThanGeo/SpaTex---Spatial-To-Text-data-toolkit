@@ -174,7 +174,7 @@ namespace text_generator
 
             if (area != "") {
                 // append the area
-                returnText += ", and they have " + area + " square km of area in common";
+                returnText += " and they have " + area + " square km of area in common";
             }
 
             returnText += ". ";
