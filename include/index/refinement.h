@@ -64,12 +64,12 @@ namespace refinement
 
     namespace sentences
     {
-        DB_STATUS computeRelationTexts(Shape* objR, Shape* objS, MBRRelationCase mbrRelationCase, std::string &relationText);
+        DB_STATUS computeRelations(Shape* objR, Shape* objS, MBRRelationCase mbrRelationCase, std::string &relationText);
     }
 
     namespace paragraphs
     {
-        DB_STATUS computeRelationTexts(Shape* objR, Shape* objS, MBRRelationCase mbrRelationCase);
+        DB_STATUS computeRelations(Shape* objR, Shape* objS, MBRRelationCase mbrRelationCase, DocumentType docType);
     }
 
     DB_STATUS computeCardinalDirectionBetweenShapes(Shape* objR, Shape* objS, CardinalDirection &direction);

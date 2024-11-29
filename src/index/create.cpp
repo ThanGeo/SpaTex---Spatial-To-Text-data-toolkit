@@ -159,8 +159,12 @@ namespace uniform_grid
                 std::getline(ss, token, '\t');
                 currentCol++;
             }
-            // add as object name the dataset type + object name
-            object.name = dataset->description + " " + token;
+            // add as object name the dataset type (if set) + object name
+            if (dataset->description == "") {
+                object.name = token;
+            } else {
+                object.name = dataset->description + " " + token;
+            }
             // set rec ID
             object.recID = lineCounter;
             // set object from the WKT

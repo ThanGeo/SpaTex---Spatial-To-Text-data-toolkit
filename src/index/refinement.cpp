@@ -140,6 +140,41 @@ namespace refinement
         return ret;
     }
 
+    static DB_STATUS computeAreaText(Shape* objR, Shape* objS, TopologyRelation relation, std::string &areaText) {
+        DB_STATUS ret = DBERR_OK;
+        std::stringstream stream;
+        switch (relation) {
+            case TR_DISJOINT:
+            case TR_MEET:
+                // disjoint or meet, no common area
+                areaText = "0";
+                break;
+            case TR_CONTAINS:
+            case TR_COVERS:
+            case TR_EQUAL:
+                // common area is the area of objS, since its being covered by R or is equal to S
+                stream << std::fixed << std::setprecision(2) << objS->getArea();
+                areaText = stream.str();
+                break;
+            case TR_INSIDE:
+            case TR_COVERED_BY:
+                // common area is the area of objR, since its being covered by S
+                stream << std::fixed << std::setprecision(2) << objR->getArea();
+                areaText = stream.str();
+                break;
+            case TR_INTERSECT:
+                // actually compute the intersection area
+                stream << std::fixed << std::setprecision(2) << objR->getIntersectionArea(*objS);
+                areaText = stream.str();
+                break;
+            default:
+                logger::log_error(DBERR_INVALID_PARAMETER, "Invalid topological relation with code:", relation);
+                return DBERR_INVALID_PARAMETER;
+        }
+
+        return ret;
+    }
+
     static DB_STATUS computeIntersection(Shape* objR, Shape* objS, TopologyRelation relation, std::string &intersectionText) {
         DB_STATUS ret = DBERR_OK;
         switch (relation) {
@@ -173,7 +208,7 @@ namespace refinement
 
     namespace sentences
     {
-        DB_STATUS computeRelationTexts(Shape* objR, Shape* objS, MBRRelationCase mbrRelationCase, std::string &relationText) {
+        DB_STATUS computeRelations(Shape* objR, Shape* objS, MBRRelationCase mbrRelationCase, std::string &relationText) {
             DB_STATUS ret = DBERR_OK;
             TopologyRelation relation = TR_INVALID;
             // switch based on MBR intersection case
@@ -229,31 +264,8 @@ namespace refinement
 
     namespace paragraphs
     {
-        DB_STATUS computeRelationTexts(Shape* objR, Shape* objS, MBRRelationCase mbrRelationCase) {
+        static DB_STATUS generateUncompressedRelationsText(Shape* objR, Shape* objS, TopologyRelation relation) {
             DB_STATUS ret = DBERR_OK;
-            TopologyRelation relation = TR_INVALID;
-            // switch based on MBR intersection case
-            switch(mbrRelationCase) {
-                case MBR_R_IN_S:
-                    relation = refineDisjointInsideCoveredbyMeetIntersect(objR, objS);
-                    break;
-                case MBR_S_IN_R:
-                    relation = refineDisjointContainsCoversMeetIntersect(objR, objS);
-                    break;
-                case MBR_EQUAL:
-                    relation = refineEqualCoversCoveredbyTrueHitIntersect(objR, objS);
-                    break;
-                case MBR_INTERSECT:
-                    relation = refineDisjointMeetIntersect(objR, objS);
-                    break;
-                case MBR_CROSS:
-                    relation = TR_INTERSECT;
-                    break;
-                default:
-                    logger::log_error(DBERR_INVALID_PARAMETER, "Invalid mbr relation case:", mbrRelationCase);
-                    return DBERR_INVALID_PARAMETER;
-            }
-
             // generate the topological relation
             g_config.diskWriter.appendTextForEntity(objR->name, text_generator::generateTopologicalRelation(objR->name, objS->name, relation));
             if (!g_config.datasetMetadata.getSelfJoin()) {
@@ -290,9 +302,91 @@ namespace refinement
                 // if not a self join, get the reverse relation too
                 g_config.diskWriter.appendTextForEntity(objS->name, intersectionText);
             }
-                
+            return ret;
+        }
+
+        static DB_STATUS generateCompressedRelationsText(Shape* objR, Shape* objS, TopologyRelation relation) {
+            DB_STATUS ret = DBERR_OK;
+            CardinalDirection direction = CD_NONE;
+            std::string intersectionText = "";
+
+            // special case, in adjacency or disjointment also compute the cardinal direction if possible
+            if (relation == TR_MEET || relation == TR_DISJOINT) {
+                ret = computeCardinalDirectionBetweenShapes(objR, objS, direction);
+                if (ret != DBERR_OK) {
+                    logger::log_error(ret, "Error while computing the cardinal direction between objects with ids", objR->recID, "and", objS->recID);
+                    return ret;
+                }
+            } else {
+                // compute intersection area
+                ret = computeAreaText(objR, objS, relation, intersectionText);
+                if (ret != DBERR_OK) {
+                    logger::log_error(ret, "Error while computing the intersection area between objects with ids", objR->recID, "and", objS->recID);
+                    return ret;
+                }
+            }
+
+            // generate and append relations text for object R
+            std::string relationsText = text_generator::generateCombinedTopologicalRelation(objR->name, objS->name, relation, direction, intersectionText);
+            g_config.diskWriter.appendTextForEntity(objR->name, relationsText);
+
+            // if not a self-join, compute the reverse relation text for object S 
+            if (!g_config.datasetMetadata.getSelfJoin()) {
+                TopologyRelation reverseRelation = getSwappedTopologyRelation(relation);
+                CardinalDirection reverseDirection = getOppositeCardinalDirection(direction);
+                std::string reverseRelationText = text_generator::generateCombinedTopologicalRelation(objS->name, objR->name, reverseRelation, reverseDirection, intersectionText);
+                g_config.diskWriter.appendTextForEntity(objS->name, reverseRelationText);
+            }
 
             return ret;
         }
+
+        DB_STATUS computeRelations(Shape* objR, Shape* objS, MBRRelationCase mbrRelationCase, DocumentType docType) {
+            DB_STATUS ret = DBERR_OK;
+            TopologyRelation relation = TR_INVALID;
+            // switch based on MBR intersection case
+            switch(mbrRelationCase) {
+                case MBR_R_IN_S:
+                    relation = refineDisjointInsideCoveredbyMeetIntersect(objR, objS);
+                    break;
+                case MBR_S_IN_R:
+                    relation = refineDisjointContainsCoversMeetIntersect(objR, objS);
+                    break;
+                case MBR_EQUAL:
+                    relation = refineEqualCoversCoveredbyTrueHitIntersect(objR, objS);
+                    break;
+                case MBR_INTERSECT:
+                    relation = refineDisjointMeetIntersect(objR, objS);
+                    break;
+                case MBR_CROSS:
+                    relation = TR_INTERSECT;
+                    break;
+                default:
+                    logger::log_error(DBERR_INVALID_PARAMETER, "Invalid mbr relation case:", mbrRelationCase);
+                    return DBERR_INVALID_PARAMETER;
+            }
+
+            // generate the topological relation
+            if (docType == DOC_PARAGRAPHS){
+                ret =  generateUncompressedRelationsText(objR, objS, relation);
+                if (ret != DBERR_OK) {
+                    logger::log_error(ret, "Failed when generated the uncompressed relations text.");
+                    return ret;
+                }    
+            } else if (docType == DOC_PARAGRAPHS_COMPRESSED) {
+                ret =  generateCompressedRelationsText(objR, objS, relation);
+                if (ret != DBERR_OK) {
+                    logger::log_error(ret, "Failed when generated the uncompressed relations text.");
+                    return ret;
+                }                
+            } else {
+                logger::log_error(DBERR_INVALID_PARAMETER, "Invalid document type option for generating relations text:", docType);
+                return DBERR_INVALID_PARAMETER;
+            }
+
+            return ret;
+        }
+
+        
     }
 }

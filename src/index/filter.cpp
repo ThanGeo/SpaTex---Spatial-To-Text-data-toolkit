@@ -18,7 +18,7 @@ namespace uniform_grid
                     if (abs(d_ymin) < EPS) {
                         if (abs(d_ymax) < EPS) {
                             // equal MBRs
-                            ret = refinement::sentences::computeRelationTexts(objR, objS, MBR_EQUAL, relationText);
+                            ret = refinement::sentences::computeRelations(objR, objS, MBR_EQUAL, relationText);
                             if (ret != DBERR_OK) {
                                 logger::log_error(ret, "Forward for equal MBRs stopped with error.");
                             }
@@ -33,7 +33,7 @@ namespace uniform_grid
                     if (d_ymin <= 0) {
                         if (d_ymax >= 0) {
                             // MBR(s) inside MBR(r)
-                            ret = refinement::sentences::computeRelationTexts(objR, objS, MBR_S_IN_R, relationText);
+                            ret = refinement::sentences::computeRelations(objR, objS, MBR_S_IN_R, relationText);
                             if (ret != DBERR_OK) {
                                 logger::log_error(ret, "Forward for MBR(s) inside MBR(r) stopped with error.");
                             }
@@ -42,7 +42,7 @@ namespace uniform_grid
                     } else {
                         if (d_ymax < 0 && d_xmax > 0 && d_xmin < 0 && d_ymin < 0) {
                             // MBRs cross each other
-                            ret = refinement::sentences::computeRelationTexts(objR, objS, MBR_CROSS, relationText);
+                            ret = refinement::sentences::computeRelations(objR, objS, MBR_CROSS, relationText);
                             if (ret != DBERR_OK) {
                                 logger::log_error(ret, "Forward for MBRs cross stopped with error.");
                             }
@@ -56,7 +56,7 @@ namespace uniform_grid
                     if (d_ymin >= 0) {
                         if (d_ymax <= 0) {
                             // MBR(r) inside MBR(s)
-                            ret = refinement::sentences::computeRelationTexts(objR, objS, MBR_R_IN_S, relationText);
+                            ret = refinement::sentences::computeRelations(objR, objS, MBR_R_IN_S, relationText);
                             if (ret != DBERR_OK) {
                                 logger::log_error(ret, "Forward for MBR(r) inside MBR(s) stopped with error.");
                             }
@@ -65,7 +65,7 @@ namespace uniform_grid
                     } else {
                         if (d_ymax > 0 && d_xmax < 0 && d_xmin > 0 && d_ymin > 0) {
                             // MBRs cross each other
-                            ret = refinement::sentences::computeRelationTexts(objR, objS, MBR_CROSS, relationText);
+                            ret = refinement::sentences::computeRelations(objR, objS, MBR_CROSS, relationText);
                             if (ret != DBERR_OK) {
                                 logger::log_error(ret, "Forward for MBRs cross stopped with error.");
                             }
@@ -75,7 +75,7 @@ namespace uniform_grid
                 }
             }
             // MBRs intersect generally
-            ret = refinement::sentences::computeRelationTexts(objR, objS, MBR_INTERSECT, relationText);
+            ret = refinement::sentences::computeRelations(objR, objS, MBR_INTERSECT, relationText);
             if (ret != DBERR_OK) {
                 logger::log_error(ret, "Forward for MBRs intersect stopped with error.");
             }
@@ -207,7 +207,7 @@ namespace uniform_grid
                     if (abs(d_ymin) < EPS) {
                         if (abs(d_ymax) < EPS) {
                             // equal MBRs
-                            ret = refinement::paragraphs::computeRelationTexts(objR, objS, MBR_EQUAL);
+                            ret = refinement::paragraphs::computeRelations(objR, objS, MBR_EQUAL, g_config.diskWriter.getDocumentType());
                             if (ret != DBERR_OK) {
                                 logger::log_error(ret, "Forward for equal MBRs stopped with error.");
                             }
@@ -222,7 +222,7 @@ namespace uniform_grid
                     if (d_ymin <= 0) {
                         if (d_ymax >= 0) {
                             // MBR(s) inside MBR(r)
-                            ret = refinement::paragraphs::computeRelationTexts(objR, objS, MBR_S_IN_R);
+                            ret = refinement::paragraphs::computeRelations(objR, objS, MBR_S_IN_R, g_config.diskWriter.getDocumentType());
                             if (ret != DBERR_OK) {
                                 logger::log_error(ret, "Forward for MBR(s) inside MBR(r) stopped with error.");
                             }
@@ -231,7 +231,7 @@ namespace uniform_grid
                     } else {
                         if (d_ymax < 0 && d_xmax > 0 && d_xmin < 0 && d_ymin < 0) {
                             // MBRs cross each other
-                            ret = refinement::paragraphs::computeRelationTexts(objR, objS, MBR_CROSS);
+                            ret = refinement::paragraphs::computeRelations(objR, objS, MBR_CROSS, g_config.diskWriter.getDocumentType());
                             if (ret != DBERR_OK) {
                                 logger::log_error(ret, "Forward for MBRs cross stopped with error.");
                             }
@@ -245,7 +245,7 @@ namespace uniform_grid
                     if (d_ymin >= 0) {
                         if (d_ymax <= 0) {
                             // MBR(r) inside MBR(s)
-                            ret = refinement::paragraphs::computeRelationTexts(objR, objS, MBR_R_IN_S);
+                            ret = refinement::paragraphs::computeRelations(objR, objS, MBR_R_IN_S, g_config.diskWriter.getDocumentType());
                             if (ret != DBERR_OK) {
                                 logger::log_error(ret, "Forward for MBR(r) inside MBR(s) stopped with error.");
                             }
@@ -254,7 +254,7 @@ namespace uniform_grid
                     } else {
                         if (d_ymax > 0 && d_xmax < 0 && d_xmin > 0 && d_ymin > 0) {
                             // MBRs cross each other
-                            ret = refinement::paragraphs::computeRelationTexts(objR, objS, MBR_CROSS);
+                            ret = refinement::paragraphs::computeRelations(objR, objS, MBR_CROSS, g_config.diskWriter.getDocumentType());
                             if (ret != DBERR_OK) {
                                 logger::log_error(ret, "Forward for MBRs cross stopped with error.");
                             }
@@ -264,7 +264,7 @@ namespace uniform_grid
                 }
             }
             // MBRs intersect generally
-            ret = refinement::paragraphs::computeRelationTexts(objR, objS, MBR_INTERSECT);
+            ret = refinement::paragraphs::computeRelations(objR, objS, MBR_INTERSECT, g_config.diskWriter.getDocumentType());
             if (ret != DBERR_OK) {
                 logger::log_error(ret, "Forward for MBRs intersect stopped with error.");
             }

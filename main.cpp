@@ -43,6 +43,7 @@ int main(int argc, char *argv[]) {
             }
             break;
         case DOC_PARAGRAPHS:
+        case DOC_PARAGRAPHS_COMPRESSED:
             ret = uniform_grid::paragraphs::evaluate(g_config.datasetMetadata.getDatasetR(), g_config.datasetMetadata.getDatasetS());
             if (ret != DBERR_OK) {
                 logger::log_error(ret, "Evaluation failed.");

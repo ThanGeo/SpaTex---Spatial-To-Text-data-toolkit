@@ -123,6 +123,7 @@ enum TopologyRelation {
 enum DocumentType {
     DOC_SENTENCES,
     DOC_PARAGRAPHS,
+    DOC_PARAGRAPHS_COMPRESSED,
     DOC_INVALID = 777,
 };
 

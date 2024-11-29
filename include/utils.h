@@ -101,6 +101,9 @@ namespace text_generator
      * Semantics: entityNameR 'relation text' entityNameS */
     std::string generateTopologicalRelation(std::string &entityNameR, std::string &entityNameS, TopologyRelation relation);
 
+    /** @brief generate the combined topological relation between two entities, that includes: relation type, cardinal direction, and common are (if any)*/
+    std::string generateCombinedTopologicalRelation(std::string &entityNameR, std::string &entityNameS, TopologyRelation relation, CardinalDirection direction, std::string area);
+
 
     std::string generateAreaInSqkm(std::string &entityNameR, std::string &entityNameS, double area);
 }

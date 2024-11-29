@@ -48,7 +48,9 @@ double convertDegreesToSquareKilometers(double areaInDegrees, double lat) {
 
     // test formula. The proper way would be to adjust each lon/lat coordinate while adding them to the area.
     // not just adjust the area in degrees
-    return areaInDegrees * 111.32 * 111.32 * abs(cos(lat));
+    double areaInSqKm = areaInDegrees * 111.32 * 111.32 * abs(cos(lat));
+    // round to 2 decimal places
+    return std::round(areaInSqKm * 100.0) / 100.0;
 }
 
 
@@ -117,6 +119,7 @@ namespace mapping
     std::string documentTypeIntToStr(DocumentType docType) {
         switch(docType) {
             case DOC_PARAGRAPHS: return "PARAGRAPHS";
+            case DOC_PARAGRAPHS_COMPRESSED: return "PARAGRAPHS_COMPRESSED";
             case DOC_SENTENCES: return "SENTENCES";
             default: return "";
         }
@@ -125,6 +128,7 @@ namespace mapping
     DocumentType documentTypeTextToInt(std::string str) {
         if (str.compare("PARAGRAPHS") == 0) return DOC_PARAGRAPHS;
         else if (str.compare("SENTENCES") == 0) return DOC_SENTENCES;
+        else if (str.compare("PARAGRAPHS_COMPRESSED") == 0) return DOC_PARAGRAPHS_COMPRESSED;
 
         return DOC_INVALID;
     }
@@ -145,18 +149,47 @@ namespace text_generator
     std::string generateTopologicalRelation(std::string &entityNameR, std::string &entityNameS, TopologyRelation relation) {
         std::string relationText = mapping::relationIntToStr(relation);
         if (relationText == "") {
-            // don't generate a relation, empty direction
+            // don't generate a relation
             return "";
         } else {
             return entityNameR + " " + relationText + " " + entityNameS + ". ";
         }
     }
 
+    std::string generateCombinedTopologicalRelation(std::string &entityNameR, std::string &entityNameS, TopologyRelation relation, CardinalDirection direction, std::string area) {
+        std::string relationText = mapping::relationIntToStr(relation);
+        std::string returnText = "";
+        if (relationText == "") {
+            // don't generate a relation
+            return returnText;
+        } else {
+            returnText = entityNameR + " " + relationText;
+            if (direction != CD_NONE) {
+                std::string directionText = mapping::cardinalDirectionIntToString(direction);
+                // generate direction text
+                returnText += " and " + directionText + " of " + entityNameS;
+            } else {
+                returnText += " " + entityNameS;
+            }
+
+            if (area != "") {
+                // append the area
+                returnText += ", and they have " + area + " square km of area in common";
+            }
+
+            returnText += ". ";
+        }
+
+        return returnText;
+    }
+
     std::string generateAreaInSqkm(std::string &entityNameR, std::string &entityNameS, double area) {
         if (area < EPS) {
             return "";
         } else {
-            return entityNameR + " and " + entityNameS + " have approximately " + std::to_string(area) + " square kilometers of common area. ";
+            std::stringstream stream;
+            stream << std::fixed << std::setprecision(2) << area;
+            return entityNameR + " and " + entityNameS + " have approximately " + stream.str() + " square kilometers of common area. ";
         }
     }
 }

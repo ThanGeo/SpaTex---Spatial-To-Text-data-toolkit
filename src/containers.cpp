@@ -303,8 +303,9 @@ void DiskWriter::addString(std::string &str, int tid) {
 DB_STATUS DiskWriter::writeBuffers() {
     switch (this->docType) {
         case DOC_PARAGRAPHS:
+        case DOC_PARAGRAPHS_COMPRESSED:
             for (auto &it : this->entityRelationMap) {
-                if (!(this->output << it.first + " information: ")) {
+                if (!(this->output << it.first + " topological relations: ")) {
                     return DBERR_FILE_WRITE;
                 }
                 if (!(this->output << it.second << std::endl)) {
