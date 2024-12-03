@@ -121,7 +121,7 @@ static DB_STATUS loadMetadata(DatasetStatement &stmt) {
         logger::log_error(DBERR_INI_ERROR, "'wktcolidx' invalid or missing parameter from datasets.ini configuration file for dataset", stmt.nickname);
         return DBERR_INI_ERROR;
     }
-
+    // entity name
     try {
         stmt.nameColIdx = dataset_config_pt.get<int>(stmt.nickname+".namecolidx");
     }
@@ -129,6 +129,14 @@ static DB_STATUS loadMetadata(DatasetStatement &stmt) {
         logger::log_task(e.what());
         logger::log_error(DBERR_INI_ERROR, "'namecolidx' invalid or missing parameter from datasets.ini configuration file for dataset", stmt.nickname);
         return DBERR_INI_ERROR;
+    }
+    // optional: other column idx to append to name (for counties)
+    try {
+        stmt.otherColIdx = dataset_config_pt.get<int>(stmt.nickname+".othercolidx");
+    }
+    catch(const std::exception& e) {
+        // ignore
+        stmt.otherColIdx = -1;
     }
     
     return DBERR_OK;

@@ -117,4 +117,12 @@ CardinalDirection getOppositeCardinalDirection(CardinalDirection direction);
 /** @brief Returns the textual swap of the given topology relation. */
 TopologyRelation getSwappedTopologyRelation(TopologyRelation relation);
 
+/** @brief Splits the given string using the specified delimiter into the array */
+DB_STATUS splitString(std::string &input, char delimiter, std::vector<std::string> &tokens);
+
+namespace state
+{
+    std::string stateFpToStateName(int stateFP);
+}
+
 #endif

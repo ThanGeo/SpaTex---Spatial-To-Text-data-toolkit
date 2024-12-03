@@ -149,9 +149,12 @@ namespace refinement
                 // disjoint or meet, no common area
                 areaText = "0";
                 break;
+            case TR_EQUAL:
+                // ignore area for equality
+                areaText = "0";
+                break;
             case TR_CONTAINS:
             case TR_COVERS:
-            case TR_EQUAL:
                 // common area is the area of objS, since its being covered by R or is equal to S
                 stream << std::fixed << std::setprecision(2) << objS->getArea();
                 areaText = stream.str();
@@ -310,6 +313,12 @@ namespace refinement
             CardinalDirection direction = CD_NONE;
             std::string intersectionText = "";
 
+            // generate and append relations text for object R
+            if (g_config.datasetMetadata.getSelfJoin() && relation == TR_EQUAL) {
+                // ignore joining the same objects in self-joins
+                return DBERR_OK;
+            }
+
             // special case, in adjacency or disjointment also compute the cardinal direction if possible
             if (relation == TR_MEET || relation == TR_DISJOINT) {
                 ret = computeCardinalDirectionBetweenShapes(objR, objS, direction);
@@ -326,7 +335,7 @@ namespace refinement
                 }
             }
 
-            // generate and append relations text for object R
+            // get relations text
             std::string relationsText = text_generator::generateCombinedTopologicalRelation(objR->name, objS->name, relation, direction, intersectionText);
             g_config.diskWriter.appendTextForEntity(objR->name, relationsText);
 

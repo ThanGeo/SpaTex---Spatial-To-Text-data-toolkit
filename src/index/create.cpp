@@ -134,13 +134,25 @@ namespace uniform_grid
         while (std::getline(fin, line)) {
             // parse line
             std::stringstream ss(line);
+            std::vector<std::string> tokens;
+            ret = splitString(line, '\t', tokens);
+            if (ret != DBERR_OK) {
+                logger::log_error(ret, "Split data line failed.");
+                return ret;
+            }
+
             int currentCol = -1;
             // get the wkt data
             while (currentCol < dataset->wktColIdx) {
                 std::getline(ss, token, '\t');
                 currentCol++;
             }
-            wktData = token;
+            if (dataset->wktColIdx < tokens.size()) {
+                wktData = tokens[dataset->wktColIdx];
+            } else {
+                logger::log_error(DBERR_INVALID_PARAMETER, "Invalid wkt column index for dataset. Value:", dataset->wktColIdx, "while the line has only", tokens.size(), "columns.");
+                return DBERR_INVALID_PARAMETER;
+            }
             // get data type
             std::string datatypeStr;
             std::stringstream typess(wktData);
@@ -155,16 +167,27 @@ namespace uniform_grid
                 return ret;
             }
             // get the name of the entity
-            while (currentCol < dataset->nameColIdx) {
-                std::getline(ss, token, '\t');
-                currentCol++;
+            if (dataset->nameColIdx < tokens.size()) {
+                object.name = tokens[dataset->nameColIdx];
+            } else {
+                logger::log_error(DBERR_INVALID_PARAMETER, "Invalid wkt column index for dataset. Value:", dataset->wktColIdx, "while the line has only", tokens.size(), "columns.");
+                return DBERR_INVALID_PARAMETER;
             }
             // add as object name the dataset type (if set) + object name
-            if (dataset->description == "") {
-                object.name = token;
-            } else {
-                object.name = dataset->description + " " + token;
+            if (dataset->description != "") {
+                object.name = dataset->description + " " + object.name;
             }
+            // get any other column to modify the name with
+            if (dataset->otherColIdx != -1){
+                if(dataset->otherColIdx < tokens.size()) {
+                    int stateFP = std::stoi(tokens[dataset->otherColIdx]);
+                    object.name += ", " + state::stateFpToStateName(stateFP);
+                } else {
+                    logger::log_error(DBERR_INVALID_PARAMETER, "Invalid other column index for dataset. Value:", dataset->otherColIdx, "while the line has only", tokens.size(), "columns.");
+                    return DBERR_INVALID_PARAMETER;
+                }
+            }
+
             // set rec ID
             object.recID = lineCounter;
             // set object from the WKT

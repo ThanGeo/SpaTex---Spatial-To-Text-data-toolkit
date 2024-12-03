@@ -18,6 +18,7 @@ struct DatasetStatement
     std::string description = "";
     int wktColIdx = -1;
     int nameColIdx = -1;
+    int otherColIdx = -1;
 };
 
 struct OutputStatement
@@ -1601,6 +1602,7 @@ struct Dataset{
     std::string description;
     int wktColIdx = -1;
     int nameColIdx = -1;
+    int otherColIdx = -1;
     // holds the dataset's dataspace metadata (MBR, extent)
     DataspaceMetadata dataspaceMetadata;
     // unique object count

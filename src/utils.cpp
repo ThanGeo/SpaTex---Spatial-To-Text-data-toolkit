@@ -257,3 +257,96 @@ TopologyRelation getSwappedTopologyRelation(TopologyRelation relation) {
     }
     return TR_INVALID;
 }
+
+DB_STATUS splitString(std::string &input, char delimiter, std::vector<std::string> &tokens) {
+    DB_STATUS ret = DBERR_OK;
+    std::istringstream stream(input);
+    std::string token;
+    while (getline(stream, token, delimiter)) {
+        tokens.emplace_back(token);
+    }
+    return ret;
+}
+
+namespace state
+{
+    std::string stateFpToStateName(int stateFP) {
+        switch (stateFP) {
+            case 1: return "Alabama";
+            case 2: return "Alaska";
+            case 3: return "American Samoa";
+            case 4: return "Arizona";
+            case 5: return "Arkansas";
+            case 6: return "California";
+            case 7: return "Canal Zone";
+            case 8: return "Colorado";
+            case 9: return "Connecticut";
+            case 10: return "Delaware";
+            case 11: return "District of Columbia";
+            case 12: return "Florida";
+            case 13: return "Georgia";
+            case 14: return "Guam";
+            case 15: return "Hawaii";
+            case 16: return "Idaho";
+            case 17: return "Illinois";
+            case 18: return "Indiana";
+            case 19: return "Iowa";
+            case 20: return "Kansas";
+            case 21: return "Kentucky";
+            case 22: return "Louisiana";
+            case 23: return "Maine";
+            case 24: return "Maryland";
+            case 25: return "Massachusetts";
+            case 26: return "Michigan";
+            case 27: return "Minnesota";
+            case 28: return "Mississippi";
+            case 29: return "Missouri";
+            case 30: return "Montana";
+            case 31: return "Nebraska";
+            case 32: return "Nevada";
+            case 33: return "New Hampshire";
+            case 34: return "New Jersey";
+            case 35: return "New Mexico";
+            case 36: return "New York";
+            case 37: return "North Carolina";
+            case 38: return "North Dakota";
+            case 39: return "Ohio";
+            case 40: return "Oklahoma";
+            case 41: return "Oregon";
+            case 42: return "Pennsylvania";
+            case 43: return "Puerto Rico";
+            case 44: return "Rhode Island";
+            case 45: return "South Carolina";
+            case 46: return "South Dakota";
+            case 47: return "Tennessee";
+            case 48: return "Texas";
+            case 49: return "Utah";
+            case 50: return "Vermont";
+            case 51: return "Virginia";
+            case 52: return "Virgin Islands of the U.S.";
+            case 53: return "Washington";
+            case 54: return "West Virginia";
+            case 55: return "Wisconsin";
+            case 56: return "Wyoming";
+            case 60: return "American Samoa";
+            case 64: return "Federated States of Micronesia";
+            case 66: return "Guam";
+            case 67: return "Johnston Atoll";
+            case 68: return "Marshall Islands";
+            case 69: return "Northern Mariana Islands";
+            case 70: return "Palau";
+            case 71: return "Midway Islands";
+            case 72: return "Puerto Rico";
+            case 74: return "U.S. Minor Outlying Islands";
+            case 76: return "Navassa Island";
+            case 78: return "Virgin Islands of the U.S.";
+            case 79: return "Wake Island";
+            case 81: return "Baker Island";
+            case 84: return "Howland Island";
+            case 86: return "Jarvis Island";
+            case 89: return "Kingman Reef";
+            case 95: return "Palmyra Atoll";
+        }
+        return "Invalid FIPS Code";
+    }
+}

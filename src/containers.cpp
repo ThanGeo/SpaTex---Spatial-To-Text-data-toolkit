@@ -10,6 +10,7 @@ Dataset::Dataset(DatasetStatement &stmt){
     this->description = stmt.description;
     this->wktColIdx = stmt.wktColIdx;
     this->nameColIdx = stmt.nameColIdx;
+    this->otherColIdx = stmt.otherColIdx;
 }
 
 Shape* Dataset::getObject(size_t recID) {
